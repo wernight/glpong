@@ -75,10 +75,10 @@ bool CFireworkRocket::Create()
 	m_partFire = new PARTICLE[EXPLOSION_PINK*EXPLOSION_FIRE];
 	if (m_partFire == NULL)
 		return false;
-	
+
 	m_bExploding = false;
 
-	// Rocket's particle	
+	// Rocket's particle
 	m_partRocket.active = true;
 	m_partRocket.life = m_partRocket.ini_life = MY_RAND(2.5f, 3.0f);
 	m_partRocket.ini_size = 0.5f;
@@ -97,7 +97,7 @@ bool CFireworkRocket::Create()
 	// Rocket's sparks
 	for (i=0; i<ROCKET_FIRE; ++i)
 		CreateRocketSpark(&m_partSpark[i]);
-	
+
 	// Explosion's pink
 	nExplosionColor = g_rand.RandomInt()%COLORS;
 	for (i=0; i<EXPLOSION_PINK; ++i)
@@ -127,7 +127,7 @@ bool CFireworkRocket::Create()
 			m_partFire[i*EXPLOSION_FIRE+j].zi = 0.0f;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -254,7 +254,7 @@ bool CFireworkRocket::Update(float dt)
 			Explode();
 		}
 	}
-	
+
 	// Update sparks
 	for (i=0; i<ROCKET_FIRE; ++i)					// i Through All The Particles
 	{
@@ -273,22 +273,25 @@ bool CFireworkRocket::Update(float dt)
 		{
 			fAlpha = fLife*5.0f;
 			m_partSpark[i].color[0] = m_partSpark[i].ini_color[0] * fAlpha;
-			m_partSpark[i].color[1] = m_partSpark[i].ini_color[2] * fAlpha;
-			m_partSpark[i].color[2] = m_partSpark[i].ini_color[3] * fAlpha;
+			m_partSpark[i].color[1] = m_partSpark[i].ini_color[1] * fAlpha;
+			m_partSpark[i].color[2] = m_partSpark[i].ini_color[2] * fAlpha;
 		}
 
 		m_partSpark[i].life -= dt;
-		if (m_partSpark[i].life < 0.0f)					// If Particle Is Burned Out
+		if (m_partSpark[i].life < 0.0f)
+		{
+			// If Particle Is Burned Out
 			if (m_partRocket.life < float(i)/ROCKET_FIRE)
 				m_partSpark[i].active = false;
 			else
 				CreateRocketSpark(&m_partSpark[i]);
-    }
-    
-    // Update explosion particles
-    if (m_bExploding)
-    {
-	    for (i=0; i<EXPLOSION_PINK; ++i)
+		}
+	}
+
+	// Update explosion particles
+	if (m_bExploding)
+	{
+		for (i=0; i<EXPLOSION_PINK; ++i)
 	   	{
 			if (m_partPink[i].active)
 			{
@@ -304,8 +307,8 @@ bool CFireworkRocket::Update(float dt)
 				{
 					fAlpha = fLife*5.0f;
 					m_partPink[i].color[0] = m_partPink[i].ini_color[0] * fAlpha;
-					m_partPink[i].color[1] = m_partPink[i].ini_color[2] * fAlpha;
-					m_partPink[i].color[2] = m_partPink[i].ini_color[3] * fAlpha;
+					m_partPink[i].color[1] = m_partPink[i].ini_color[1] * fAlpha;
+					m_partPink[i].color[2] = m_partPink[i].ini_color[2] * fAlpha;
 				}
 
 				m_partPink[i].life -= (float) dt;
@@ -325,12 +328,12 @@ bool CFireworkRocket::Update(float dt)
 			}
 		}
 
-	    for (i=0; i<EXPLOSION_PINK*EXPLOSION_FIRE; ++i)
+		for (i=0; i<EXPLOSION_PINK*EXPLOSION_FIRE; ++i)
 	   	{
 			if (m_partFire[i].active)							// If The Particle Is Active
 			{
 				bEndExplode = false;
-	
+
 				fLife = m_partFire[i].life / m_partFire[i].ini_life;
 
 				m_partFire[i].x += m_partFire[i].xi*dt;
@@ -343,26 +346,26 @@ bool CFireworkRocket::Update(float dt)
 				{
 					fAlpha = fLife*5.0f;
 					m_partFire[i].color[0] = m_partFire[i].ini_color[0] * fAlpha;
-					m_partFire[i].color[1] = m_partFire[i].ini_color[2] * fAlpha;
-					m_partFire[i].color[2] = m_partFire[i].ini_color[3] * fAlpha;
+					m_partFire[i].color[1] = m_partFire[i].ini_color[1] * fAlpha;
+					m_partFire[i].color[2] = m_partFire[i].ini_color[2] * fAlpha;
 				}
 
 				m_partFire[i].life -= dt;
 				if (m_partFire[i].life < 0.0f)					// If Particle Is Burned Out
 					m_partFire[i].active = false;
 			}
-	    }
+		}
 
-	    if (bEndExplode)
-	        Create();		// Re-create a new rocket.
-    }
+		if (bEndExplode)
+			Create();		// Re-create a new rocket.
+	}
 	return true;
 }
 
 void CFireworkRocket::Explode()
 {
 	register int i;
-	
+
 	for (i=0; i<EXPLOSION_PINK; ++i)
 	{
 		m_partPink[i].active = true;

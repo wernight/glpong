@@ -1,11 +1,11 @@
-GLPong v1.31
+GLPong v1.40
 Copyright (c) Werner BEROUX
 
-Pong était le premier jeu sur ordinateur. Deux joueurs, chacun dirigeant son paddle, doivent se renvoyer la balle. Les points sont ici comptés comme au tennis. Le code source est fourni.
+Pong Ã©tait le premier jeu sur ordinateur. Deux joueurs, chacun dirigeant son paddle, doivent se renvoyer la balle. Les points sont ici comptÃ©s comme au tennis. Le code source est fourni.
 
-Le jeu se joue à 2 sur un même ordinateur. Le joueur gauche utilise les touches Shift et Ctrl, le droit utilise les flèches haut et bas.
+Le jeu se joue Ã  2 sur un mÃªme ordinateur. Le joueur gauche utilise les touches Shift et Ctrl, le droit utilise les flÃ¨ches haut et bas.
 
-Ce projet est issue des heures perdues en TP informatique. Après avoir fini mon TP, ne sachant que faire, j'ai voulus faire un tout petit jeu très simple. J'ai décidé de faire profiter la communoté de ce jeu, avec ses sources. Libre à vous de l'améliorer.
+Ce projet est issue des heures perdues en TP informatique. AprÃ¨s avoir fini mon TP, ne sachant que faire, j'ai voulus faire un tout petit jeu trÃ¨s simple. J'ai dÃ©cidÃ© de faire profiter la communotÃ© de ce jeu, avec ses sources. Libre Ã  vous de l'amÃ©liorer.
 
 Fichiers:
 - UML.vpp	Diagramme UML du projet visualisable avec Visual Paradigm.
@@ -14,6 +14,6 @@ Fichiers:
 - make.bat	Make simple pour Intel C++
 - src/		Fichiers sources du jeu
 - res/		Ressources (Windows)
-- bin/		Fichiers compilés et finaux
+- bin/		Fichiers compilÃ©s et finaux
 
-Le jeu dépend de OpenGL, GLU et SDL.
+Le jeu dÃ©pend de OpenGL, GLU et SDL.
