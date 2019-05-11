@@ -67,17 +67,17 @@ int main(int argc, char *argv[])
 #ifdef _DEBUG
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0)
 #else
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 #endif
 	{
-		fprintf(stderr, "Video initialization failed: %s\n", SDL_GetError());
+		std::cerr << "Video initialization failed: " << SDL_GetError() << std::endl;
 		return 1;
 	}
 
 	// Fetch the video info
 	if (!(videoInfo = SDL_GetVideoInfo()))
 	{
-		fprintf(stderr, "Video query failed: %s\n", SDL_GetError());
+		std::cerr << "Video query failed: " << SDL_GetError() << std::endl;
 		SDL_Quit();
 		return 1;
 	}
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 	// Get a SDL surface
 	if (!(g_sdlSurface = SDL_SetVideoMode(640, 480, 16, videoFlags)))
 	{
-		fprintf(stderr,  "Video mode set failed: %s\n", SDL_GetError());
+		std::cerr << "Video mode set failed: " << SDL_GetError() << std::endl;
 		SDL_Quit();
 		return 1;
 	}
@@ -283,7 +283,7 @@ int InitGL(GLvoid)														// All Setup For OpenGL Goes Here
 	glDisable(GL_BLEND);
 	glDisable(GL_TEXTURE_2D);
 
-	// Lumières
+	// LumiÃ¨res
 	GLfloat LightPosition[]=	{ 30.0f, 50.0f, -100.0f, 1.0f };
 	glLightfv(GL_LIGHT1, GL_POSITION,LightPosition);					// Position The Light
 
@@ -300,7 +300,7 @@ int InitGL(GLvoid)														// All Setup For OpenGL Goes Here
 		!g_scene.AddObject(g_ppaddleLeft) ||
 		!g_scene.AddObject(&g_paddleRight) ||
 		!g_scene.AddObject(&g_ball) ||
-        !g_scene.Initialize())
+		!g_scene.Initialize())
 		return false;
 	return true;
 }
@@ -325,8 +325,8 @@ int LoadGLTextures()											// Load Bitmaps And Convert To Textures
 	int Status = false;											// Status Indicator
 	int	i;
 
-    // Create storage space for the texture
-    SDL_Surface *TextureImage[NUM_TEXTURES]; 
+	// Create storage space for the texture
+	SDL_Surface *TextureImage[NUM_TEXTURES];
 
 	// Load The Bitmap, Check For Errors.
 	if ((TextureImage[0] = SDL_LoadBMP("Particle.bmp")) &&
