@@ -33,9 +33,14 @@ Use Visual Studio; possibly generate project files using CMake.
 
 ## Linux
 
-Using Docker:
+Using Docker, also generating WebAssembly:
 
     $ ./build.sh
+
+This will do 2 things:
+
+  - Generate Linux binaries and WebAssembly files
+  - Run a web server to test the game: http://localhost:8080/glpong.html
 
 Alternatively, you may use CMake directly:
 

@@ -37,6 +37,11 @@
 #include "Paddle.h"
 #include "AiPaddle.h"
 #include "Ball.h"
+#ifdef __EMSCRIPTEN__
+#include <glm/vec3.hpp> // glm::vec3
+#include <glm/ext/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale
+#include <glm/ext/matrix_clip_space.hpp> // glm::perspective
+#endif
 
 #define ROCKETS				4		// Number of simultaneous rockets for the firework
 #define SCREEN_FREQUENCY	60		// 60Hz
@@ -49,25 +54,89 @@ CPaddle		g_paddleRight(false);
 CBall		g_ball;
 SDL_Surface *g_sdlSurface;				// This is our SDL surface
 GLuint		g_texture[NUM_TEXTURES];	// Storage For Our Particle Texture
+int			g_done = false;		// main loop variable
+int			g_isActive = true;	// whether or not the window is active
+Uint32		g_nPrevTicks;
+Uint32		g_nLastDraw;
 
-bool UserInputBoolean()
+bool UserInputBoolean(bool default_value)
 {
+#ifdef __EMSCRIPTEN__
+	return default_value;
+#else
 	std::string input;
 	std::cin >> input;
 	return !input.empty() && tolower(input[0]) == 'y';
+#endif
+}
+
+void Draw()
+{
+	// Handle the events in the queue
+	SDL_Event	event;
+	while (SDL_PollEvent(&event))
+	{
+		switch (event.type)
+		{
+		case SDL_VIDEORESIZE:
+			// handle resize event
+			ReSizeGLScene(event.resize.w, event.resize.h);
+			break;
+
+		case SDL_KEYDOWN:
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				SDL_Quit();
+				g_done = true;
+				return;
+			case SDLK_F1:
+				SDL_WM_ToggleFullScreen(g_sdlSurface);
+				break;
+			case SDLK_PAUSE:
+				g_isActive = !g_isActive;
+				break;
+			default:
+				g_scene.ProcessEvent(IObject::eventKeyDown, event.key.keysym.sym, 0);
+			}
+			break;
+
+		case SDL_KEYUP:
+			g_scene.ProcessEvent(IObject::eventKeyUp, 0, event.key.keysym.sym);
+			break;
+
+		case SDL_QUIT:
+			g_done = true;
+			break;
+		}
+	}
+
+	// Draw the scene
+	if (g_isActive)
+	{
+		// Game logic update
+		Uint32 nCurTicks = SDL_GetTicks();
+		float t = (nCurTicks - g_nPrevTicks) / 1000.0f;
+		g_nPrevTicks = nCurTicks;
+		if (t > 0.3f)
+			t = 0.0f;
+		UpdateScene(t);
+
+		// Render scene
+		if ((nCurTicks - g_nLastDraw) > 1000/SCREEN_FREQUENCY)
+		{
+			g_nLastDraw = nCurTicks;
+			DrawGLScene();
+			SDL_GL_SwapBuffers();
+		}
+
+		// Gather our frames per second
+		DrawFPS();
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	char		szBuffer[5];
-	SDL_Event	event;				// used to collect events
-	int			done = false;		// main loop variable
-	int			isActive = true;	// whether or not the window is active
-	Uint32		nCurTicks,
-				nPrevTicks,
-				nLastDraw;
-	float		t;
-
 	// initialize SDL
 #ifdef _DEBUG
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0)
@@ -99,7 +168,7 @@ int main(int argc, char *argv[])
 
 	// Full-screen?
 	std::cout << "Full-screen mode [Y/N]?";
-	if (UserInputBoolean())
+	if (UserInputBoolean(false))
 	{
 		videoFlags |= SDL_FULLSCREEN;		// Enable full-screen mode
 		SDL_ShowCursor(SDL_DISABLE);
@@ -107,7 +176,7 @@ int main(int argc, char *argv[])
 
 	// Versus AI?
 	std::cout << "Play against AI [Y/N]?";
-	if (UserInputBoolean())
+	if (UserInputBoolean(true))
 	{
 		// AI.
 		g_ppaddleLeft = new CAiPaddle(true);
@@ -148,74 +217,25 @@ int main(int argc, char *argv[])
 	// resize the initial window
 	ReSizeGLScene(640, 480);
 
+#ifdef __EMSCRIPTEN__
+	RegalMakeCurrent((RegalSystemContext) 1);
+#endif
+
 	// Main loop
-	nLastDraw = nPrevTicks = SDL_GetTicks();
-	while (!done)
+	g_nLastDraw = g_nPrevTicks = SDL_GetTicks();
+#ifdef __EMSCRIPTEN__
+	emscripten_set_main_loop(Draw, /*fps=*/0, /*simulate_infinite_loop=*/1);
+#else
+	while (!g_done)
 	{
-		// Handle the events in the queue
-		while (SDL_PollEvent(&event))
-		{
-			switch (event.type)
-			{
-			case SDL_VIDEORESIZE:
-				// handle resize event
-				ReSizeGLScene(event.resize.w, event.resize.h);
-				break;
+		Draw();
 
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_ESCAPE:
-					SDL_Quit();
-					return 0;
-				case SDLK_F1:
-					SDL_WM_ToggleFullScreen(g_sdlSurface);
-					break;
-				case SDLK_PAUSE:
-					isActive = !isActive;
-					break;
-				default:
-					g_scene.ProcessEvent(IObject::eventKeyDown, event.key.keysym.sym, 0);
-				}
-				break;
-
-			case SDL_KEYUP:
-				g_scene.ProcessEvent(IObject::eventKeyUp, 0, event.key.keysym.sym);
-				break;
-
-			case SDL_QUIT:
-				done = true;
-				break;
-			}
-		}
-
-		// Draw the scene
-		if (isActive)
-		{
-			// Game logic update
-			nCurTicks = SDL_GetTicks();
-			t = (nCurTicks - nPrevTicks) / 1000.0f;
-			nPrevTicks = nCurTicks;
-			if (t > 0.3f)
-				t = 0.0f;
-			UpdateScene(t);
-
-			// Render scene
-			if ((nCurTicks - nLastDraw) > 1000/SCREEN_FREQUENCY)
-			{
-				nLastDraw = nCurTicks;
-				DrawGLScene();
-				SDL_GL_SwapBuffers();
-			}
-
-			// Gather our frames per second
-			DrawFPS();
-
+		if (g_isActive)
 			SDL_Delay(2);
-		}
 		else
 			SDL_Delay(100);
 	}
+#endif
 
 	// End
 	IMG_Quit();
@@ -254,6 +274,12 @@ void DrawGLScene()
 
 	// Loocking to...
 	// 3D Look.
+#ifdef __EMSCRIPTEN__
+	glm::lookAt(
+		glm::vec3(0.0f, -120.0f, -100.0f),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f));
+#else
 	gluLookAt(	0,	-120,	-100,
 				0,	0,		0,
 				0,	1,		0);
@@ -263,6 +289,7 @@ void DrawGLScene()
 				0,	17,		0,
 				0,	1,		0);
 //*/
+#endif
 
 	// Scene manager
 	g_scene.Render();
@@ -314,7 +341,11 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)						// Resize And Initializ
 
 	glMatrixMode(GL_PROJECTION);										// Select The Projection Matrix
 	glLoadIdentity();													// Reset The Projection Matrix
+#ifdef __EMSCRIPTEN__
+	glm::perspective(45.0f, (GLfloat)width/(GLfloat)height, 1.0f, 1000.0f);
+#else
 	gluPerspective(45.0f, (GLfloat)width/(GLfloat)height, 1, 1000);
+#endif
 
 	glMatrixMode(GL_MODELVIEW);											// Select The Modelview Matrix
 	glLoadIdentity();													// Reset The Modelview Matrix
@@ -386,7 +417,7 @@ void DrawFirework()
 
 	// Message loop
 	nPrevTicks = SDL_GetTicks();
-	while(!done)									// Loop That Runs While done=false
+	while(!g_done)									// Loop That Runs While done=false
 	{
 		while (SDL_PollEvent(&event))
 		{
@@ -401,7 +432,7 @@ void DrawFirework()
 				if (event.key.keysym.sym != SDLK_ESCAPE)
 					break;
 			case SDL_QUIT:
-				done = true;
+				g_done = true;
 				break;
 			}
 		}

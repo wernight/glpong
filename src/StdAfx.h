@@ -35,6 +35,11 @@
 #pragma comment(lib, "./lib/SDL/lib/SDL.lib")			// The SDL.lib Libraries
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <GL/Regal.h>
+#include <emscripten.h>
+#endif
+
 #include <SDL/SDL.h>
 #include <SDL/SDL_opengl.h>
 #include <SDL/SDL_image.h>
