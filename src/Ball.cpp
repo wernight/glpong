@@ -71,7 +71,7 @@ bool CBall::Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle)
  * Once OpenGL ready the initialize function of each object is called.
  * In this function object should initialize their OpenGL related data
  * and prepare to render.
- * 
+ *
  * @return True if initialize successful and ready to update/render.
  */
 bool CBall::Initialize()
@@ -160,7 +160,7 @@ void CBall::Update(float fTime)
 				b = m_vBallPosition.y - a*m_vBallPosition.x,
 				y;
 
-        // Bounce on paddle?
+		// Bounce on paddle?
 		if (m_vBallPosition.x-BALL_RADIUS >= CBoard::GetRight()+CPaddle::GetWidth() &&
 			(y = a*(CBoard::GetRight()+CPaddle::GetWidth()+BALL_RADIUS) + b)-BALL_RADIUS <= m_pRightPaddle->GetPosition()+CPaddle::GetHeight()*0.5f &&
 			y+BALL_RADIUS >= m_pRightPaddle->GetPosition()-CPaddle::GetHeight()*0.5f)
@@ -229,7 +229,7 @@ void CBall::Render() const
 	glCallList(m_nList);
 	glPopMatrix();
 
-	// Billboarding	
+	// Billboarding
 	glGetFloatv(GL_MODELVIEW_MATRIX, fModelView);
 
 	vRight.x = fModelView[0];
@@ -242,8 +242,8 @@ void CBall::Render() const
 
 	// Particules
 	glColor3f(0.0f, 1.0f, 0.0f);
-    if (g_texture[0] != 0)
-        glBindTexture(GL_TEXTURE_2D, g_texture[0]);
+	if (g_texture[0] != 0)
+		glBindTexture(GL_TEXTURE_2D, g_texture[0]);
 	glPushAttrib(GL_ENABLE_BIT);
 		glEnable(GL_TEXTURE_2D);
 		glEnable(GL_BLEND);
@@ -288,7 +288,7 @@ void CBall::NewBall(bool bGoToLeft)
 {
 	float fAngle;
 
-	// Donne un angle aléatoire
+	// Selects a random angle.
 	do
 		fAngle = (float)m_rand.RandomRange(-BALL_MAX_ANGLE, +BALL_MAX_ANGLE);
 	while (fabs(fAngle) < BALL_MIN_ANGLE);
@@ -347,11 +347,11 @@ inline bool CBall::HitPoint(CVector2D &vOldPos, CVector2D &vNewPos, CVector2D &v
 /*
 R is the new direction vector
 I is the old direction vector before the collision
-N is the Normal at the collision point 
+N is the Normal at the collision point
 
-The new vector R is calculated as follows: 
+The new vector R is calculated as follows:
 
-R= 2*(-I dot N)*N + I 
+R= 2*(-I dot N)*N + I
 
 The restriction is that the I and N vectors have to be unit vectors. The velocity vector as used in our examples represents speed and direction. Therefore it can not be plugged into the equation in the place of I, without any transformation. The speed has to be extracted. The speed for such a velocity vector is extracted finding the magnitude of the vector. Once the magnitude is found, the vector can be transformed to a unit vector and plugged into the equation giving the reflection vector R. R shows us now the direction, of the reflected ray, but in order to be used as a velocity vector it must also incorporate the speed. Therefore it gets, multiplied with the magnitude of the original ray, thus resulting in the correct velocity vector.
 */

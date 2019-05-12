@@ -76,7 +76,7 @@ public:
 	// Add points to a player's score.
 	void Score(bool bLeftPlayer);
 
-// Implémentation
+// ImplÃ©mentation
 private:
 	static void DrawDigitNumber(int nNumber);
 

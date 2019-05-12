@@ -49,7 +49,7 @@ CBoard::CBoard() :
  * Once OpenGL ready the initialize function of each object is called.
  * In this function object should initialize their OpenGL related data
  * and prepare to render.
- * 
+ *
  * @return True if initialize successful and ready to update/render.
  */
 bool CBoard::Initialize()
@@ -203,7 +203,7 @@ void CBoard::Score(bool bLeftPlayer)
 		*pnScore += 10;
 
 	// The player won?
-	if ((m_nLeftScore > 40 || m_nRightScore > 40) && 
+	if ((m_nLeftScore > 40 || m_nRightScore > 40) &&
 		abs(m_nLeftScore-m_nRightScore) > 10)
 	{
 		// Affiche le feu d'artifice

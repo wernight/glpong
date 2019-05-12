@@ -1,15 +1,15 @@
 #ifndef INC_MT_PSEUDO_RANDOM_NUMBER_GENERATOR_H_
 #define INC_MT_PSEUDO_RANDOM_NUMBER_GENERATOR_H_
 
-/* 
+/*
    A C-program for MT19937, with initialization improved 2002/1/26.
    Coded by Takuji Nishimura and Makoto Matsumoto.
 
-   Before using, initialize the state by using init_genrand(seed)  
+   Before using, initialize the state by using init_genrand(seed)
    or init_by_array(init_key, key_length).
 
    Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
-   All rights reserved.                          
+   All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
@@ -22,8 +22,8 @@
         notice, this list of conditions and the following disclaimer in the
         documentation and/or other materials provided with the distribution.
 
-     3. The names of its contributors may not be used to endorse or promote 
-        products derived from this software without specific prior written 
+     3. The names of its contributors may not be used to endorse or promote
+        products derived from this software without specific prior written
         permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -75,8 +75,8 @@ public:
 	{
 		mt[0]= seed & 0xffffffffUL;
 		for (mti=1; mti<N; mti++) {
-			mt[mti] = 
-				(1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti); 
+			mt[mti] =
+				(1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
 			/* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
 			/* In the previous versions, MSBs of the seed affect   */
 			/* only MSBs of the array mt[].                        */
@@ -113,7 +113,7 @@ public:
 			if (i>=N) { mt[0] = mt[N-1]; i=1; }
 		}
 
-		mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */ 
+		mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */
 	}
 
 	// Initialize using current time.
@@ -167,30 +167,30 @@ public:
 	// Generates a random number on [0,1]-real-interval.
 	inline double RandomReal1(void)
 	{
-		return RandomInt()*(1.0/4294967295.0); 
-		/* divided by 2^32-1 */ 
+		return RandomInt()*(1.0/4294967295.0);
+		/* divided by 2^32-1 */
 	}
 
 	// Generates a random number on [0,1)-real-interval.
 	inline double RandomReal2(void)
 	{
-		return RandomInt()*(1.0/4294967296.0); 
+		return RandomInt()*(1.0/4294967296.0);
 		/* divided by 2^32 */
 	}
 
 	// Generates a random number on (0,1)-real-interval.
 	inline double RandomReal3(void)
 	{
-		return (((double)RandomInt()) + 0.5)*(1.0/4294967296.0); 
+		return (((double)RandomInt()) + 0.5)*(1.0/4294967296.0);
 		/* divided by 2^32 */
 	}
 
 	// Generates a random number on [0,1) with 53-bit resolution.
-	inline double RandomRes53(void) 
-	{ 
-		unsigned long a=RandomInt()>>5, b=RandomInt()>>6; 
-		return(a*67108864.0+b)*(1.0/9007199254740992.0); 
-	} 
+	inline double RandomRes53(void)
+	{
+		unsigned long a=RandomInt()>>5, b=RandomInt()>>6;
+		return(a*67108864.0+b)*(1.0/9007199254740992.0);
+	}
 	/* These real versions are due to Isaku Wada, 2002/01/09 added */
 
 	// Generates a random number on [low,hi]-interval.

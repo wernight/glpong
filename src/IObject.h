@@ -45,7 +45,7 @@ public:
 	 * Once OpenGL ready the initialize function of each object is called.
 	 * In this function object should initialize their OpenGL related data
 	 * and prepare to render.
-	 * 
+	 *
 	 * @return True if initialize successful and ready to update/render.
 	 */
 	virtual bool Initialize() = 0;

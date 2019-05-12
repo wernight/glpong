@@ -328,7 +328,7 @@ bool LoadGLTextures()											// Load Bitmaps And Convert To Textures
 	SDL_Surface *TextureImage[NUM_TEXTURES];
 
 	TextureImage[0] = IMG_Load("particle.png");
-    TextureImage[1] = IMG_Load("small_blur_star.png");
+	TextureImage[1] = IMG_Load("small_blur_star.png");
 
 	// Load The Bitmap, Check For Errors.
 	if (TextureImage[0] != nullptr && TextureImage[1] != nullptr)
@@ -346,16 +346,16 @@ bool LoadGLTextures()											// Load Bitmaps And Convert To Textures
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		}
 	}
-    else
-    {
-        for (int i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
-            // Mark that this texture isn't loaded.
-            g_texture[i] = 0;
-    }
+	else
+	{
+		for (int i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
+			// Mark that this texture isn't loaded.
+			g_texture[i] = 0;
+	}
 
 	// Free up any memory we may have used
 	for (int i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
-        SDL_FreeSurface(TextureImage[i]);
+		SDL_FreeSurface(TextureImage[i]);
 
 	return succeeded;
 }
@@ -373,8 +373,8 @@ void DrawFirework()
 	// Init GL
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glBlendFunc(GL_ONE, GL_ONE);						// Type Of Blending To Perform
-    if (g_texture[1] != 0)
-        glBindTexture(GL_TEXTURE_2D, g_texture[1]);			// Select Our Texture
+	if (g_texture[1] != 0)
+		glBindTexture(GL_TEXTURE_2D, g_texture[1]);			// Select Our Texture
 
 	// Create a rocket
 	for (i=0; i<ROCKETS; ++i)

@@ -36,12 +36,12 @@ bool CAiPaddle::Create(CBall *pBall)
 	m_pBall = pBall;
 	return true;
 }
-	
+
 /** Initialize the object.
  * Once OpenGL ready the initialize function of each object is called.
  * In this function object should initialize their OpenGL related data
  * and prepare to render.
- * 
+ *
  * @return True if initialize successful and ready to update/render.
  */
 /*bool CAiPaddle::Initialize()

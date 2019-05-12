@@ -42,7 +42,7 @@ CPaddle::CPaddle(bool bLeftPaddle) :
  * Once OpenGL ready the initialize function of each object is called.
  * In this function object should initialize their OpenGL related data
  * and prepare to render.
- * 
+ *
  * @return True if initialize successful and ready to update/render.
  */
 bool CPaddle::Initialize()
@@ -190,7 +190,7 @@ bool CPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lP
 			if (m_bLeftPaddle)
 			{
 				Stop();
-            	return true;
+				return true;
 			}
 			break;
 		case SDLK_UP:
@@ -204,7 +204,7 @@ bool CPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lP
 		}
 		break;
 	}
-	
+
 	return false;
 }
 

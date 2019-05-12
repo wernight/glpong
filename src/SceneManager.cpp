@@ -39,7 +39,7 @@ bool CSceneManager::AddObject(IObject *pObject)
  * Once OpenGL ready the initialize function of each object is called.
  * In this function object should initialize their OpenGL related data
  * and prepare to render.
- * 
+ *
  * @return True if initialize successful and ready to update/render.
  */
 bool CSceneManager::Initialize()
