@@ -39,7 +39,6 @@ target_link_libraries(glpong
 		${SDLIMAGE_LIBRARY}
 )
 
-configure_file(bin/particle.png particle.png COPYONLY)
-configure_file(bin/small_blur_star.png small_blur_star.png COPYONLY)
-
 install(TARGETS glpong DESTINATION bin)
+install(FILES res/particle.png DESTINATION bin)
+install(FILES res/small_blur_star.png DESTINATION bin)

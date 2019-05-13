@@ -33,9 +33,14 @@ Use Visual Studio; possibly generate project files using CMake.
 
 ## Linux
 
+Using Docker:
+
+    $ ./build.sh
+
+Alternatively, you may use CMake directly:
+
     $ mkdir build
     $ cd build_
     $ cmake ..
-    $ make
-
-Then either `make install` or run via `./glpong`.
+    $ make install
+    $ glpong
