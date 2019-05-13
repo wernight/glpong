@@ -17,11 +17,25 @@ Project files:
 
 - UML.vpp	 Visual Paradigm UML diagram.
 - GLPong.sln	Solution for Visual C++ 7
-- Makefile	Makefile for Linux
-- make.sh   Simple make for Linux
+- CMakeLists.txt	CMake for Linux
 - make.bat	Simple make for Intel C++
 - src/		Game source code
 - res/		Ressources (Windows)
 - bin/		Compiled files
 
 This game uses OpenGL, GLU and SDL.
+
+# Compilation
+
+## Windows
+
+Use Visual Studio; possibly generate project files using CMake.
+
+## Linux
+
+    $ mkdir build
+    $ cd build_
+    $ cmake ..
+    $ make
+
+Then either `make install` or run via `./glpong`.
