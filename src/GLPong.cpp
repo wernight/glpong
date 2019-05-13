@@ -73,11 +73,13 @@ int main(int argc, char *argv[])
 		std::cerr << "Video initialization failed: " << SDL_GetError() << std::endl;
 		return 1;
 	}
+	IMG_Init(IMG_INIT_PNG);
 
 	// Fetch the video info
 	if (!(videoInfo = SDL_GetVideoInfo()))
 	{
 		std::cerr << "Video query failed: " << SDL_GetError() << std::endl;
+		IMG_Quit();
 		SDL_Quit();
 		return 1;
 	}
@@ -138,6 +140,7 @@ int main(int argc, char *argv[])
 	if (!(g_sdlSurface = SDL_SetVideoMode(640, 480, 16, videoFlags)))
 	{
 		std::cerr << "Video mode set failed: " << SDL_GetError() << std::endl;
+		IMG_Quit();
 		SDL_Quit();
 		return 1;
 	}
@@ -218,6 +221,7 @@ int main(int argc, char *argv[])
 	}
 
 	// End
+	IMG_Quit();
 	SDL_Quit();
 	delete g_ppaddleLeft;
 	return EXIT_SUCCESS;
@@ -329,8 +333,8 @@ int LoadGLTextures()											// Load Bitmaps And Convert To Textures
 	SDL_Surface *TextureImage[NUM_TEXTURES];
 
 	// Load The Bitmap, Check For Errors.
-	if ((TextureImage[0] = SDL_LoadBMP("Particle.bmp")) &&
-		(TextureImage[1] = SDL_LoadBMP("Small Blur Star.bmp")))
+	if ((TextureImage[0] = IMG_Load("particle.png")) &&
+		(TextureImage[1] = IMG_Load("small_blur_star.png")))
 	{
 		Status = true;											// Set The Status To true
 
