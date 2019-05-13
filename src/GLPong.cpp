@@ -50,12 +50,17 @@ CBall		g_ball;
 SDL_Surface *g_sdlSurface;				// This is our SDL surface
 GLuint		g_texture[NUM_TEXTURES];	// Storage For Our Particle Texture
 
+bool UserInputBoolean()
+{
+	std::string input;
+	std::cin >> input;
+	return !input.empty() && tolower(input[0]) == 'y';
+}
+
 int main(int argc, char *argv[])
 {
-	const SDL_VideoInfo *videoInfo;	// this holds some info about our display
 	char		szBuffer[5];
 	SDL_Event	event;				// used to collect events
-	int			videoFlags;			// Flags to pass to SDL_SetVideoMode
 	int			done = false;		// main loop variable
 	int			isActive = true;	// whether or not the window is active
 	Uint32		nCurTicks,
@@ -76,6 +81,7 @@ int main(int argc, char *argv[])
 	IMG_Init(IMG_INIT_PNG);
 
 	// Fetch the video info
+	const SDL_VideoInfo *videoInfo;	// this holds some info about our display
 	if (!(videoInfo = SDL_GetVideoInfo()))
 	{
 		std::cerr << "Video query failed: " << SDL_GetError() << std::endl;
@@ -85,32 +91,23 @@ int main(int argc, char *argv[])
 	}
 
 	// the flags to pass to SDL_SetVideoMode
+	int videoFlags;			// Flags to pass to SDL_SetVideoMode
 	videoFlags  = SDL_OPENGL;			// Enable OpenGL in SDL
 	videoFlags |= SDL_GL_DOUBLEBUFFER;	// Enable double buffering
 	videoFlags |= SDL_HWPALETTE;		// Store the palette in hardware
 	videoFlags |= SDL_RESIZABLE;		// Enable window resizing
 
 	// Full-screen?
-	printf("Full-screen mode [Y/N]?");
-#ifdef _DEBUG
-	strcpy(szBuffer, "no");
-#else
-	scanf("%5s", szBuffer);
-#endif
-	if (strlen(szBuffer) > 0 && tolower(szBuffer[0]) == 'y')
+	std::cout << "Full-screen mode [Y/N]?";
+	if (UserInputBoolean())
 	{
 		videoFlags |= SDL_FULLSCREEN;		// Enable full-screen mode
 		SDL_ShowCursor(SDL_DISABLE);
 	}
 
 	// Versus AI?
-	printf("Play against AI [Y/N]?");
-#ifdef _DEBUG
-	strcpy(szBuffer, "yes");
-#else
-	scanf("%5s", szBuffer);
-#endif
-	if (strlen(szBuffer) > 0 && tolower(szBuffer[0]) == 'y')
+	std::cout << "Play against AI [Y/N]?";
+	if (UserInputBoolean())
 	{
 		// AI.
 		g_ppaddleLeft = new CAiPaddle(true);
@@ -238,7 +235,7 @@ void DrawFPS()
 	{
 		GLfloat fSeconds = (nCurrentTime - nStartTime) / 1000.0f;
 		GLfloat fFPS = nFrames / fSeconds;
-		printf("%d frames in %g seconds = %g FPS\n", nFrames, fSeconds, fFPS);
+		std::cout << nFrames << " frames in " << fSeconds << " seconds = " << fFPS << " FPS" << std::endl;
 		nStartTime = nCurrentTime;
 		nFrames = 0;
 	}
