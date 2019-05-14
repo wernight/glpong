@@ -242,7 +242,8 @@ void CBall::Render() const
 
 	// Particules
 	glColor3f(0.0f, 1.0f, 0.0f);
-	glBindTexture(GL_TEXTURE_2D, g_texture[0]);
+    if (g_texture[0] != 0)
+        glBindTexture(GL_TEXTURE_2D, g_texture[0]);
 	glPushAttrib(GL_ENABLE_BIT);
 		glEnable(GL_TEXTURE_2D);
 		glEnable(GL_BLEND);

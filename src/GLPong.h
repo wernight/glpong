@@ -31,7 +31,7 @@ void DrawGLScene();
 int InitGL(GLvoid);
 GLvoid ReSizeGLScene(GLsizei width, GLsizei height);
 void UpdateScene(float t);
-int LoadGLTextures();
+bool LoadGLTextures();
 void DrawFirework();
 
 #endif

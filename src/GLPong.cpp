@@ -273,8 +273,7 @@ int InitGL(GLvoid)														// All Setup For OpenGL Goes Here
 	GLfloat LightAmbient[]=		{ 0.5f, 0.5f, 0.5f, 1.0f };
 	GLfloat LightDiffuse[]=		{ 1.0f, 1.0f, 1.0f, 1.0f };
 
-	if (!LoadGLTextures())								// Jump To Texture Loading Routine
-		return false;									// If Texture Didn't Load Return false
+	LoadGLTextures();
 
 	glShadeModel(GL_SMOOTH);											// Enable Smooth Shading
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);								// Black Background
@@ -321,37 +320,44 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)						// Resize And Initializ
 	glLoadIdentity();													// Reset The Modelview Matrix
 }
 
-int LoadGLTextures()											// Load Bitmaps And Convert To Textures
+bool LoadGLTextures()											// Load Bitmaps And Convert To Textures
 {
-	int Status = false;											// Status Indicator
-	int	i;
+	bool succeeded = false;
 
 	// Create storage space for the texture
 	SDL_Surface *TextureImage[NUM_TEXTURES];
 
+	TextureImage[0] = IMG_Load("particle.png");
+    TextureImage[1] = IMG_Load("small_blur_star.png");
+
 	// Load The Bitmap, Check For Errors.
-	if ((TextureImage[0] = IMG_Load("particle.png")) &&
-		(TextureImage[1] = IMG_Load("small_blur_star.png")))
+	if (TextureImage[0] != nullptr && TextureImage[1] != nullptr)
 	{
-		Status = true;											// Set The Status To true
+		succeeded = true;
 
 		glGenTextures(NUM_TEXTURES, &g_texture[0]);				// Create The Texture ( CHANGE )
 
-		for (i=0; i<NUM_TEXTURES; i++)							// Loop Through Both Textures
+		for (int i=0; i<NUM_TEXTURES; i++)							// Loop Through Both Textures
 		{
 			// Typical Texture Generation Using Data From The TGA ( CHANGE )
 			glBindTexture(GL_TEXTURE_2D, g_texture[i]);
 			glTexImage2D(GL_TEXTURE_2D, 0, 3, TextureImage[0]->w, TextureImage[0]->h, 0, GL_RGB, GL_UNSIGNED_BYTE, TextureImage[0]->pixels);
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		}
 	}
+    else
+    {
+        for (int i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
+            // Mark that this texture isn't loaded.
+            g_texture[i] = 0;
+    }
 
 	// Free up any memory we may have used
-	for (i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
-		SDL_FreeSurface(TextureImage[i]);
+	for (int i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
+        SDL_FreeSurface(TextureImage[i]);
 
-	return Status;												// Return The Status
+	return succeeded;
 }
 
 void DrawFirework()
@@ -367,7 +373,8 @@ void DrawFirework()
 	// Init GL
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glBlendFunc(GL_ONE, GL_ONE);						// Type Of Blending To Perform
-	glBindTexture(GL_TEXTURE_2D, g_texture[1]);			// Select Our Texture
+    if (g_texture[1] != 0)
+        glBindTexture(GL_TEXTURE_2D, g_texture[1]);			// Select Our Texture
 
 	// Create a rocket
 	for (i=0; i<ROCKETS; ++i)
