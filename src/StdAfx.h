@@ -37,6 +37,7 @@
 
 #ifdef __EMSCRIPTEN__
 #include <GL/Regal.h>
+#include <GL/RegalGLU.h>
 #include <emscripten.h>
 #endif
 

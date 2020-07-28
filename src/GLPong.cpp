@@ -37,11 +37,6 @@
 #include "Paddle.h"
 #include "AiPaddle.h"
 #include "Ball.h"
-#ifdef __EMSCRIPTEN__
-#include <glm/vec3.hpp> // glm::vec3
-#include <glm/ext/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale
-#include <glm/ext/matrix_clip_space.hpp> // glm::perspective
-#endif
 
 #define ROCKETS				4		// Number of simultaneous rockets for the firework
 #define SCREEN_FREQUENCY	60		// 60Hz
@@ -274,12 +269,6 @@ void DrawGLScene()
 
 	// Loocking to...
 	// 3D Look.
-#ifdef __EMSCRIPTEN__
-	glm::lookAt(
-		glm::vec3(0.0f, -120.0f, -100.0f),
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f));
-#else
 	gluLookAt(	0,	-120,	-100,
 				0,	0,		0,
 				0,	1,		0);
@@ -289,7 +278,6 @@ void DrawGLScene()
 				0,	17,		0,
 				0,	1,		0);
 //*/
-#endif
 
 	// Scene manager
 	g_scene.Render();
@@ -341,11 +329,7 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)						// Resize And Initializ
 
 	glMatrixMode(GL_PROJECTION);										// Select The Projection Matrix
 	glLoadIdentity();													// Reset The Projection Matrix
-#ifdef __EMSCRIPTEN__
-	glm::perspective(45.0f, (GLfloat)width/(GLfloat)height, 1.0f, 1000.0f);
-#else
 	gluPerspective(45.0f, (GLfloat)width/(GLfloat)height, 1, 1000);
-#endif
 
 	glMatrixMode(GL_MODELVIEW);											// Select The Modelview Matrix
 	glLoadIdentity();													// Reset The Modelview Matrix

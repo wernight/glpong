@@ -24,16 +24,12 @@ RUN set -x \
  && ./emsdk install latest \
  && ./emsdk activate latest
 
-# glm
-# https://glm.g-truc.net/0.9.9/index.html
 RUN set -x \
- && mkdir /opt/glm \
- && cd /opt/glm \
- && curl -L https://github.com/g-truc/glm/archive/0.9.9.5.tar.gz | tar xz --strip-components=1 \
- && mkdir build \
- && cd build \
- && cmake .. \
- && make install
+ && mkdir /opt/regal \
+ && cd $_ \
+ && curl -L https://github.com/emscripten-ports/regal/archive/version_7.tar.gz | tar xz --strip-components=1 \
+ && make -f Makefile.regal \
+ && make -f Makefile.glu
 
 WORKDIR /code
 # Port running a basic web server for testing.
