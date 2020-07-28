@@ -101,7 +101,7 @@ void CBall::Update(float fTime)
 	CVector2D	vNewBallPos(m_vBallPosition + m_vBallSpeed*fTime);
 	double		dAngle,
 				dSpeed;
-	register int i;
+	int i;
 
 	// Bounce top/bottom
 	if (vNewBallPos.y+BALL_RADIUS > CBoard::GetTop())
@@ -221,7 +221,7 @@ void CBall::Render() const
 					vUp,
 					vVertex;
 	float			ps;
-	register int	i;
+	int	i;
 
 	// Ball
 	glPushMatrix();

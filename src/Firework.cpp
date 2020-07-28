@@ -154,7 +154,7 @@ void CFireworkRocket::CreateRocketSpark(PARTICLE *pParticle)
 bool CFireworkRocket::Render() const
 {
 	float	x, y, z;
-	register int i;
+	int i;
 
 	// Render Rocket's sparks
 	for (i=0; i<ROCKET_FIRE; ++i)						// i Through All The Particles
@@ -228,7 +228,7 @@ bool CFireworkRocket::Update(float dt)
 	float			fLife,
 					fAlpha;
 	bool			bEndExplode = true;
-	register int	i;
+	int	i;
 
 	t += dt;
 
@@ -364,9 +364,7 @@ bool CFireworkRocket::Update(float dt)
 
 void CFireworkRocket::Explode()
 {
-	register int i;
-
-	for (i=0; i<EXPLOSION_PINK; ++i)
+	for (int i=0; i<EXPLOSION_PINK; ++i)
 	{
 		m_partPink[i].active = true;
 		m_partPink[i].x = m_partRocket.x;
