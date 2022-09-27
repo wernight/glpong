@@ -31,13 +31,14 @@
 #ifdef WIN32											// If We're Under MSVC
 #pragma comment(lib, "OpenGL32.lib")					// We're Telling The Linker To Look For The OpenGL32.lib
 #pragma comment(lib, "GLu32.lib")						// The GLu32.lib Library...
-#pragma comment(lib, "./lib/SDL/lib/SDLmain.lib")		// The SDLmain.lib And
-#pragma comment(lib, "./lib/SDL/lib/SDL.lib")			// The SDL.lib Libraries
+#pragma comment(lib, "SDL2main.lib")
+#pragma comment(lib, "SDL2.lib")
+#pragma comment(lib, "SDL2_image.lib")
 #endif
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_opengl.h>
-#include <SDL/SDL_image.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+#include <SDL2/SDL_image.h>
 #include <GL/glu.h>
 
 //#include <stdio.h>

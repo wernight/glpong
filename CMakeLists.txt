@@ -1,15 +1,9 @@
-cmake_minimum_required (VERSION 2.8.11)
-project (GLPong)
+cmake_minimum_required (VERSION 3.10)
+project(GLPong LANGUAGES CXX)
 
 find_package(OpenGL REQUIRED)
-find_package(SDL REQUIRED)
-find_package(SDL_image REQUIRED)
-
-include_directories(
-	${OPENGL_INCLUDE_DIR}
-	${SDL_INCLUDE_DIR}
-	${SDLIMAGE_INCLUDE_DIR}
-)
+find_package(SDL2 CONFIG REQUIRED)
+find_package(SDL2_image CONFIG REQUIRED)
 
 add_executable(glpong
 	src/AiPaddle.cpp
@@ -33,10 +27,11 @@ add_executable(glpong
 )
 
 target_link_libraries(glpong
-	LINK_PUBLIC
-		${OPENGL_LIBRARIES}
-		${SDL_LIBRARY}
-		${SDLIMAGE_LIBRARY}
+	PRIVATE
+		OpenGL::GL
+		OpenGL::GLU
+		SDL2::SDL2
+		SDL2_image::SDL2_image
 )
 
 install(TARGETS glpong DESTINATION bin)

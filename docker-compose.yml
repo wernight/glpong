@@ -1,0 +1,8 @@
+services:
+  glpong:
+    build: .
+    volumes:
+      - ./:/code/
+      - build-cache:/tmp/glpong
+volumes:
+  build-cache:

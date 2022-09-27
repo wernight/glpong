@@ -47,7 +47,8 @@ CBoard		g_board;
 CPaddle		*g_ppaddleLeft;
 CPaddle		g_paddleRight(false);
 CBall		g_ball;
-SDL_Surface *g_sdlSurface;				// This is our SDL surface
+SDL_Window* g_pWindow;
+SDL_GLContext g_GLContext;
 GLuint		g_texture[NUM_TEXTURES];	// Storage For Our Particle Texture
 
 bool UserInputBoolean()
@@ -80,28 +81,16 @@ int main(int argc, char *argv[])
 	}
 	IMG_Init(IMG_INIT_PNG);
 
-	// Fetch the video info
-	const SDL_VideoInfo *videoInfo;	// this holds some info about our display
-	if (!(videoInfo = SDL_GetVideoInfo()))
-	{
-		std::cerr << "Video query failed: " << SDL_GetError() << std::endl;
-		IMG_Quit();
-		SDL_Quit();
-		return 1;
-	}
-
 	// the flags to pass to SDL_SetVideoMode
-	int videoFlags;			// Flags to pass to SDL_SetVideoMode
-	videoFlags  = SDL_OPENGL;			// Enable OpenGL in SDL
-	videoFlags |= SDL_GL_DOUBLEBUFFER;	// Enable double buffering
-	videoFlags |= SDL_HWPALETTE;		// Store the palette in hardware
-	videoFlags |= SDL_RESIZABLE;		// Enable window resizing
+	Uint32 videoFlags;			// Flags to pass to SDL_SetVideoMode
+	videoFlags  = SDL_WINDOW_OPENGL;			// Enable OpenGL in SDL
+	videoFlags |= SDL_WINDOW_RESIZABLE;		// Enable window resizing
 
 	// Full-screen?
 	std::cout << "Full-screen mode [Y/N]?";
 	if (UserInputBoolean())
 	{
-		videoFlags |= SDL_FULLSCREEN;		// Enable full-screen mode
+		videoFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;		// Enable full-screen mode
 		SDL_ShowCursor(SDL_DISABLE);
 	}
 
@@ -120,23 +109,25 @@ int main(int argc, char *argv[])
 	}
 	g_ball.Create(&g_board, g_ppaddleLeft, &g_paddleRight);
 
-	// This checks to see if surfaces can be stored in memory
-	if (videoInfo->hw_available)
-		videoFlags |= SDL_HWSURFACE;
-	else
-		videoFlags |= SDL_SWSURFACE;
-
-	// This checks if hardware blits can be done
-	if (videoInfo->blit_hw)
-		videoFlags |= SDL_HWACCEL;
-
 	// Sets up OpenGL double buffering
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
 	// Get a SDL surface
-	if (!(g_sdlSurface = SDL_SetVideoMode(640, 480, 16, videoFlags)))
+	g_pWindow = SDL_CreateWindow("GLPong", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, videoFlags);
+	if (!g_pWindow)
 	{
 		std::cerr << "Video mode set failed: " << SDL_GetError() << std::endl;
+		IMG_Quit();
+		SDL_Quit();
+		return 1;
+	}
+
+	g_GLContext = SDL_GL_CreateContext(g_pWindow);
+	if (!g_GLContext)
+	{
+		std::cerr << "GL context creation failed: " << SDL_GetError() << std::endl;
+		SDL_DestroyWindow(g_pWindow);
 		IMG_Quit();
 		SDL_Quit();
 		return 1;
@@ -157,9 +148,9 @@ int main(int argc, char *argv[])
 		{
 			switch (event.type)
 			{
-			case SDL_VIDEORESIZE:
+			case SDL_WINDOWEVENT_RESIZED:
 				// handle resize event
-				ReSizeGLScene(event.resize.w, event.resize.h);
+				ReSizeGLScene(event.window.data1, event.window.data2);
 				break;
 
 			case SDL_KEYDOWN:
@@ -169,7 +160,13 @@ int main(int argc, char *argv[])
 					SDL_Quit();
 					return 0;
 				case SDLK_F1:
-					SDL_WM_ToggleFullScreen(g_sdlSurface);
+					{
+						Uint32 flags = SDL_GetWindowFlags(g_pWindow);
+						if (flags & SDL_WINDOW_FULLSCREEN)
+							SDL_SetWindowFullscreen(g_pWindow, 0);  // back to windowed
+						else
+							SDL_SetWindowFullscreen(g_pWindow, SDL_WINDOW_FULLSCREEN);
+					}
 					break;
 				case SDLK_PAUSE:
 					isActive = !isActive;
@@ -205,7 +202,7 @@ int main(int argc, char *argv[])
 			{
 				nLastDraw = nCurTicks;
 				DrawGLScene();
-				SDL_GL_SwapBuffers();
+				SDL_GL_SwapWindow(g_pWindow);
 			}
 
 			// Gather our frames per second
@@ -218,6 +215,8 @@ int main(int argc, char *argv[])
 	}
 
 	// End
+	SDL_GL_DeleteContext(g_GLContext);
+	SDL_DestroyWindow(g_pWindow);
 	IMG_Quit();
 	SDL_Quit();
 	delete g_ppaddleLeft;
@@ -253,16 +252,17 @@ void DrawGLScene()
 	glLoadIdentity();													// Reset The Modelview Matrix
 
 	// Loocking to...
+#if false
 	// 3D Look.
 	gluLookAt(	0,	-120,	-100,
 				0,	0,		0,
 				0,	1,		0);
-/*/
+#else
 	// 2D Look.
 	gluLookAt(	0,	17,		-180,
 				0,	17,		0,
 				0,	1,		0);
-//*/
+#endif
 
 	// Scene manager
 	g_scene.Render();
@@ -339,9 +339,29 @@ bool LoadGLTextures()											// Load Bitmaps And Convert To Textures
 
 		for (int i=0; i<NUM_TEXTURES; i++)							// Loop Through Both Textures
 		{
+			GLint ncolors = TextureImage[i]->format->BytesPerPixel;
+			GLenum texture_format;
+			if (ncolors == 4)   // R, G, B, and A channels
+			{
+					if (TextureImage[i]->format->Rmask == 0x000000ff)
+							texture_format = GL_RGBA;
+					else
+							texture_format = GL_BGRA;
+			} else if (ncolors == 3)   // R, G, and B channels
+			{
+					if (TextureImage[i]->format->Rmask == 0x000000ff)
+							texture_format = GL_RGB;
+					else
+							texture_format = GL_BGR;
+			} else {
+				// this is not a supported image format
+				succeeded = false;
+				break;
+			}
+
 			// Typical Texture Generation Using Data From The TGA ( CHANGE )
 			glBindTexture(GL_TEXTURE_2D, g_texture[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, 3, TextureImage[0]->w, TextureImage[0]->h, 0, GL_RGB, GL_UNSIGNED_BYTE, TextureImage[0]->pixels);
+			glTexImage2D(GL_TEXTURE_2D, 0, ncolors, TextureImage[i]->w, TextureImage[i]->h, 0, texture_format, GL_UNSIGNED_BYTE, TextureImage[i]->pixels);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		}
@@ -392,9 +412,9 @@ void DrawFirework()
 		{
 			switch (event.type)
 			{
-			case SDL_VIDEORESIZE:
-				// handle resize event
-				ReSizeGLScene(event.resize.w, event.resize.h);
+			case SDL_WINDOWEVENT:
+				if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+					ReSizeGLScene(event.window.data1, event.window.data2);
 				break;
 
 			case SDL_KEYDOWN:
@@ -442,7 +462,7 @@ void DrawFirework()
 
 		// Swap Buffers (Double Buffering)
 		glFlush();
-		SDL_GL_SwapBuffers();
+		SDL_GL_SwapWindow(g_pWindow);
 	}
 	glPopAttrib();
 }
