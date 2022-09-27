@@ -4,5 +4,7 @@ services:
     volumes:
       - ./:/code/
       - build-cache:/tmp/glpong
+      - appimage-cache:/tmp/GLPong.AppDir
 volumes:
   build-cache:
+  appimage-cache:

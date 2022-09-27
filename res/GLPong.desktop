@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=GLPong
+Exec=glpong
+Icon=GLPong
+Type=Application
+Categories=Game;
