@@ -203,6 +203,11 @@ bool CPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lP
 			break;
 		}
 		break;
+
+	case eventMouseMove:
+	case eventMouseClick:
+	case eventChar:
+		break;
 	}
 
 	return false;
