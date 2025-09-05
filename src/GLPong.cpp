@@ -50,6 +50,10 @@ CBall		g_ball;
 SDL_Window* g_pWindow;
 SDL_GLContext g_GLContext;
 GLuint		g_texture[NUM_TEXTURES];	// Storage For Our Particle Texture
+int			g_done = false;		// main loop variable
+int			g_isActive = true;	// whether or not the window is active
+Uint32		g_nPrevTicks;
+Uint32		g_nLastDraw;
 
 bool UserInputBoolean()
 {
@@ -58,17 +62,79 @@ bool UserInputBoolean()
 	return !input.empty() && tolower(input[0]) == 'y';
 }
 
+void Draw()
+{
+	// Handle the events in the queue
+	SDL_Event	event;
+	while (SDL_PollEvent(&event))
+	{
+		switch (event.type)
+		{
+		case SDL_WINDOWEVENT:
+			if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+				ReSizeGLScene(event.window.data1, event.window.data2);
+			break;
+
+		case SDL_KEYDOWN:
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				SDL_Quit();
+				g_done = true;
+				return;
+			case SDLK_F1:
+				{
+					Uint32 flags = SDL_GetWindowFlags(g_pWindow);
+					if (flags & SDL_WINDOW_FULLSCREEN)
+						   SDL_SetWindowFullscreen(g_pWindow, 0);  // back to windowed
+					else
+						   SDL_SetWindowFullscreen(g_pWindow, SDL_WINDOW_FULLSCREEN);
+				}
+				break;
+			case SDLK_PAUSE:
+				g_isActive = !g_isActive;
+				break;
+			default:
+				g_scene.ProcessEvent(IObject::eventKeyDown, event.key.keysym.sym, 0);
+			}
+			break;
+
+		case SDL_KEYUP:
+			g_scene.ProcessEvent(IObject::eventKeyUp, 0, event.key.keysym.sym);
+			break;
+
+		case SDL_QUIT:
+			g_done = true;
+			break;
+		}
+	}
+
+	// Draw the scene
+	if (g_isActive)
+	{
+		// Game logic update
+		Uint32 nCurTicks = SDL_GetTicks();
+		float t = (nCurTicks - g_nPrevTicks) / 1000.0f;
+		g_nPrevTicks = nCurTicks;
+		if (t > 0.3f)
+			t = 0.0f;
+		UpdateScene(t);
+
+		// Render scene
+		if ((nCurTicks - g_nLastDraw) > 1000/SCREEN_FREQUENCY)
+		{
+			g_nLastDraw = nCurTicks;
+			DrawGLScene();
+			SDL_GL_SwapWindow(g_pWindow);
+		}
+
+		// Gather our frames per second
+		DrawFPS();
+	}
+}
+
 int main(int argc, char *argv[])
 {
-	char		szBuffer[5];
-	SDL_Event	event;				// used to collect events
-	int			done = false;		// main loop variable
-	int			isActive = true;	// whether or not the window is active
-	Uint32		nCurTicks,
-				nPrevTicks,
-				nLastDraw;
-	float		t;
-
 	// initialize SDL
 #ifdef _DEBUG
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0)
@@ -140,76 +206,13 @@ int main(int argc, char *argv[])
 	ReSizeGLScene(640, 480);
 
 	// Main loop
-	nLastDraw = nPrevTicks = SDL_GetTicks();
-	while (!done)
+	g_nLastDraw = g_nPrevTicks = SDL_GetTicks();
+	while (!g_done)
 	{
-		// Handle the events in the queue
-		while (SDL_PollEvent(&event))
-		{
-			switch (event.type)
-			{
-			case SDL_WINDOWEVENT_RESIZED:
-				// handle resize event
-				ReSizeGLScene(event.window.data1, event.window.data2);
-				break;
+		Draw();
 
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_ESCAPE:
-					SDL_Quit();
-					return 0;
-				case SDLK_F1:
-					{
-						Uint32 flags = SDL_GetWindowFlags(g_pWindow);
-						if (flags & SDL_WINDOW_FULLSCREEN)
-							SDL_SetWindowFullscreen(g_pWindow, 0);  // back to windowed
-						else
-							SDL_SetWindowFullscreen(g_pWindow, SDL_WINDOW_FULLSCREEN);
-					}
-					break;
-				case SDLK_PAUSE:
-					isActive = !isActive;
-					break;
-				default:
-					g_scene.ProcessEvent(IObject::eventKeyDown, event.key.keysym.sym, 0);
-				}
-				break;
-
-			case SDL_KEYUP:
-				g_scene.ProcessEvent(IObject::eventKeyUp, 0, event.key.keysym.sym);
-				break;
-
-			case SDL_QUIT:
-				done = true;
-				break;
-			}
-		}
-
-		// Draw the scene
-		if (isActive)
-		{
-			// Game logic update
-			nCurTicks = SDL_GetTicks();
-			t = (nCurTicks - nPrevTicks) / 1000.0f;
-			nPrevTicks = nCurTicks;
-			if (t > 0.3f)
-				t = 0.0f;
-			UpdateScene(t);
-
-			// Render scene
-			if ((nCurTicks - nLastDraw) > 1000/SCREEN_FREQUENCY)
-			{
-				nLastDraw = nCurTicks;
-				DrawGLScene();
-				SDL_GL_SwapWindow(g_pWindow);
-			}
-
-			// Gather our frames per second
-			DrawFPS();
-
+		if (g_isActive)
 			SDL_Delay(2);
-		}
 		else
 			SDL_Delay(100);
 	}
@@ -406,7 +409,7 @@ void DrawFirework()
 
 	// Message loop
 	nPrevTicks = SDL_GetTicks();
-	while(!done)									// Loop That Runs While done=false
+	while(!g_done)									// Loop That Runs While done=false
 	{
 		while (SDL_PollEvent(&event))
 		{
@@ -421,7 +424,7 @@ void DrawFirework()
 				if (event.key.keysym.sym != SDLK_ESCAPE)
 					break;
 			case SDL_QUIT:
-				done = true;
+				g_done = true;
 				break;
 			}
 		}
