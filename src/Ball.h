@@ -36,69 +36,69 @@
 #include "RandomMT.h"
 
 // Structures
-struct PARTICLE						// Create A Structure For Particle
+struct PARTICLE            // Create A Structure For Particle
 {
-//	bool	active;					// Active (Yes/No)
-	float	life;					// life
-	float	fade;					// Fade Speed
-	float	x;						// X Position
-	float	y;						// Y Position
-	float	z;						// Z Position
-	float	color[4];				// RGBA Color - A = life
-};									// Particles Structure
+//  bool  active;          // Active (Yes/No)
+  float  life;          // life
+  float  fade;          // Fade Speed
+  float  x;            // X Position
+  float  y;            // Y Position
+  float  z;            // Z Position
+  float  color[4];        // RGBA Color - A = life
+};                  // Particles Structure
 
 class CBall : public IObject
 {
 // Constructor
 public:
-	CBall();
-	virtual ~CBall();
+  CBall();
+  virtual ~CBall();
 
-	// Create the ball.
-	bool Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle);
+  // Create the ball.
+  bool Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle);
 
 // Implementation of IObject.
-	// Initialize the object.
-	bool Initialize();
+  // Initialize the object.
+  bool Initialize();
 
-	// Update the object.
-	void Update(float fTime);
+  // Update the object.
+  void Update(float fTime);
 
-	// Render the object.
-	void Render() const;
+  // Render the object.
+  void Render() const;
 
-	// Process event.
-	bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  // Process event.
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
 
 // Attributes
-	// Current ball's location.
-	inline CVector2D GetPosition()
-	{
-		return m_vBallPosition;
-	}
+  // Current ball's location.
+  inline CVector2D GetPosition()
+  {
+    return m_vBallPosition;
+  }
 
-	// Current ball's velocity.
-	inline CVector2D GetSpeed()
-	{
-		return m_vBallSpeed;
-	}
+  // Current ball's velocity.
+  inline CVector2D GetSpeed()
+  {
+    return m_vBallSpeed;
+  }
 
 // Implementation
 private:
-	// Create a new ball aimed toward left or right player.
-	void NewBall(bool bGoToLeft);
+  // Create a new ball aimed toward left or right player.
+  void NewBall(bool bGoToLeft);
 
-	// Detects if the ball collide with a point A.
-	inline bool HitPoint(CVector2D &vOldPos, CVector2D &vNewPos, CVector2D &vSpeed, CVector2D &ptA);
+  // Detects if the ball collide with a point A.
+  inline bool HitPoint(CVector2D &vOldPos, CVector2D &vNewPos, CVector2D &vSpeed, CVector2D &ptA);
 
-	CVector2D	m_vBallPosition,	// Ball's position.
-				m_vBallSpeed;		// Ball's speed.
-	PARTICLE	m_particles[50];	// Particles
-	CBoard		*m_pBoard;
-	CPaddle		*m_pLeftPaddle,
-				*m_pRightPaddle;
-	GLuint		m_nList;
-	CRandomMT	m_rand;
+  CVector2D  m_vBallPosition,  // Ball's position.
+        m_vBallSpeed;    // Ball's speed.
+  PARTICLE  m_particles[50];  // Particles
+  CBoard    *m_pBoard;
+  CPaddle    *m_pLeftPaddle,
+        *m_pRightPaddle;
+  GLuint    m_nList;
+  CRandomMT  m_rand;
 };
 
 #endif

@@ -61,181 +61,181 @@ class CRandomMT
 {
 // Construction
 public:
-	CRandomMT()
-	{
-		Initialite( 5489UL );
-	}
-	CRandomMT(unsigned long seed)
-	{
-		Initialite( seed );
-	}
+  CRandomMT()
+  {
+    Initialite( 5489UL );
+  }
+  CRandomMT(unsigned long seed)
+  {
+    Initialite( seed );
+  }
 
-	// Initializes mt[N] with a seed..
-	void Initialite(unsigned long seed)
-	{
-		mt[0]= seed & 0xffffffffUL;
-		for (mti=1; mti<N; mti++) {
-			mt[mti] =
-				(1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
-			/* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
-			/* In the previous versions, MSBs of the seed affect   */
-			/* only MSBs of the array mt[].                        */
-			/* 2002/01/09 modified by Makoto Matsumoto             */
-			mt[mti] &= 0xffffffffUL;
-			/* for >32 bit machines */
-		}
-	}
+  // Initializes mt[N] with a seed..
+  void Initialite(unsigned long seed)
+  {
+    mt[0]= seed & 0xffffffffUL;
+    for (mti=1; mti<N; mti++) {
+      mt[mti] =
+        (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
+      /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
+      /* In the previous versions, MSBs of the seed affect   */
+      /* only MSBs of the array mt[].                        */
+      /* 2002/01/09 modified by Makoto Matsumoto             */
+      mt[mti] &= 0xffffffffUL;
+      /* for >32 bit machines */
+    }
+  }
 
-	/** Initialize by an array with array-length
-	 * init_key is the array for initializing keys
-	 * key_length is its length
-	 * slight change for C++, 2004/2/26
-	 */
-	void InitialiteByArray(unsigned long init_key[], int key_length)
-	{
-		int i, j, k;
-		Initialite(19650218UL);
-		i=1; j=0;
-		k = (N>key_length ? N : key_length);
-		for (; k; k--) {
-			mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1664525UL))
-				+ init_key[j] + j; /* non linear */
-			mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
-			i++; j++;
-			if (i>=N) { mt[0] = mt[N-1]; i=1; }
-			if (j>=key_length) j=0;
-		}
-		for (k=N-1; k; k--) {
-			mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1566083941UL))
-				- i; /* non linear */
-			mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
-			i++;
-			if (i>=N) { mt[0] = mt[N-1]; i=1; }
-		}
+  /** Initialize by an array with array-length
+   * init_key is the array for initializing keys
+   * key_length is its length
+   * slight change for C++, 2004/2/26
+   */
+  void InitialiteByArray(unsigned long init_key[], int key_length)
+  {
+    int i, j, k;
+    Initialite(19650218UL);
+    i=1; j=0;
+    k = (N>key_length ? N : key_length);
+    for (; k; k--) {
+      mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1664525UL))
+        + init_key[j] + j; /* non linear */
+      mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
+      i++; j++;
+      if (i>=N) { mt[0] = mt[N-1]; i=1; }
+      if (j>=key_length) j=0;
+    }
+    for (k=N-1; k; k--) {
+      mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1566083941UL))
+        - i; /* non linear */
+      mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
+      i++;
+      if (i>=N) { mt[0] = mt[N-1]; i=1; }
+    }
 
-		mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */
-	}
+    mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */
+  }
 
-	// Initialize using current time.
-	void Randomize(void)
-	{
-		Initialite((unsigned int) time(NULL) );
-	}
+  // Initialize using current time.
+  void Randomize(void)
+  {
+    Initialite((unsigned int) time(NULL) );
+  }
 
 // Operations
-	// Generates a random number on [0,0xffffffff]-interval.
-	inline unsigned long RandomInt(void)
-	{
-		unsigned long y;
-		static unsigned long mag01[2]={0x0UL, MATRIX_A};
-		/* mag01[x] = x * MATRIX_A  for x=0,1 */
+  // Generates a random number on [0,0xffffffff]-interval.
+  inline unsigned long RandomInt(void)
+  {
+    unsigned long y;
+    static unsigned long mag01[2]={0x0UL, MATRIX_A};
+    /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
-		if (mti >= N) { /* generate N words at one time */
-			int kk;
+    if (mti >= N) { /* generate N words at one time */
+      int kk;
 
-			for (kk=0;kk<N-M;kk++) {
-				y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-				mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[y & 0x1UL];
-			}
-			for (;kk<N-1;kk++) {
-				y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-				mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[y & 0x1UL];
-			}
-			y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
-			mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[y & 0x1UL];
+      for (kk=0;kk<N-M;kk++) {
+        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+        mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[y & 0x1UL];
+      }
+      for (;kk<N-1;kk++) {
+        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+        mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[y & 0x1UL];
+      }
+      y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
+      mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[y & 0x1UL];
 
-			mti = 0;
-		}
+      mti = 0;
+    }
 
-		y = mt[mti++];
+    y = mt[mti++];
 
-		/* Tempering */
-		y ^= (y >> 11);
-		y ^= (y << 7) & 0x9d2c5680UL;
-		y ^= (y << 15) & 0xefc60000UL;
-		y ^= (y >> 18);
+    /* Tempering */
+    y ^= (y >> 11);
+    y ^= (y << 7) & 0x9d2c5680UL;
+    y ^= (y << 15) & 0xefc60000UL;
+    y ^= (y >> 18);
 
-		return y;
-	}
+    return y;
+  }
 
-	// Generates a random number on [0,0x7fffffff]-interval.
-	inline long RandomLong(void)
-	{
-		return (long)(RandomInt()>>1);
-	}
+  // Generates a random number on [0,0x7fffffff]-interval.
+  inline long RandomLong(void)
+  {
+    return (long)(RandomInt()>>1);
+  }
 
-	// Generates a random number on [0,1]-real-interval.
-	inline double RandomReal1(void)
-	{
-		return RandomInt()*(1.0/4294967295.0);
-		/* divided by 2^32-1 */
-	}
+  // Generates a random number on [0,1]-real-interval.
+  inline double RandomReal1(void)
+  {
+    return RandomInt()*(1.0/4294967295.0);
+    /* divided by 2^32-1 */
+  }
 
-	// Generates a random number on [0,1)-real-interval.
-	inline double RandomReal2(void)
-	{
-		return RandomInt()*(1.0/4294967296.0);
-		/* divided by 2^32 */
-	}
+  // Generates a random number on [0,1)-real-interval.
+  inline double RandomReal2(void)
+  {
+    return RandomInt()*(1.0/4294967296.0);
+    /* divided by 2^32 */
+  }
 
-	// Generates a random number on (0,1)-real-interval.
-	inline double RandomReal3(void)
-	{
-		return (((double)RandomInt()) + 0.5)*(1.0/4294967296.0);
-		/* divided by 2^32 */
-	}
+  // Generates a random number on (0,1)-real-interval.
+  inline double RandomReal3(void)
+  {
+    return (((double)RandomInt()) + 0.5)*(1.0/4294967296.0);
+    /* divided by 2^32 */
+  }
 
-	// Generates a random number on [0,1) with 53-bit resolution.
-	inline double RandomRes53(void)
-	{
-		unsigned long a=RandomInt()>>5, b=RandomInt()>>6;
-		return(a*67108864.0+b)*(1.0/9007199254740992.0);
-	}
-	/* These real versions are due to Isaku Wada, 2002/01/09 added */
+  // Generates a random number on [0,1) with 53-bit resolution.
+  inline double RandomRes53(void)
+  {
+    unsigned long a=RandomInt()>>5, b=RandomInt()>>6;
+    return(a*67108864.0+b)*(1.0/9007199254740992.0);
+  }
+  /* These real versions are due to Isaku Wada, 2002/01/09 added */
 
-	// Generates a random number on [low,hi]-interval.
-	inline int RandomRange(int low, int hi)
-	{
-		ASSERT(hi > low);
-		return RandomInt() % (hi - low + 1) + low;
-	}
+  // Generates a random number on [low,hi]-interval.
+  inline int RandomRange(int low, int hi)
+  {
+    ASSERT(hi > low);
+    return RandomInt() % (hi - low + 1) + low;
+  }
 
-	// Generates a random number on [low,hi]-interval.
-	inline double RandomRange(double low, double hi)
-	{
-		ASSERT(hi > low);
-		return RandomInt()*(hi-low)/4294967295.0 + low;
-	}
+  // Generates a random number on [low,hi]-interval.
+  inline double RandomRange(double low, double hi)
+  {
+    ASSERT(hi > low);
+    return RandomInt()*(hi-low)/4294967295.0 + low;
+  }
 
-	// Generates a random number on [low,hi]-interval.
-	inline float RandomRange(float low, float hi)
-	{
-		ASSERT(hi > low);
-		return RandomInt()*(hi-low)/4294967295.0f + low;
-	}
+  // Generates a random number on [low,hi]-interval.
+  inline float RandomRange(float low, float hi)
+  {
+    ASSERT(hi > low);
+    return RandomInt()*(hi-low)/4294967295.0f + low;
+  }
 
-	// Generates random dice numbers for RPG like 2d6.
-	inline int RollDice(int nDices, int nFaces)
-	{
-		int sum = 0;
-		for (int loop=0; loop<nDices; loop++)
-		{
-			sum += RandomRange(1,nFaces);
-		}
-		return sum;
-	}
+  // Generates random dice numbers for RPG like 2d6.
+  inline int RollDice(int nDices, int nFaces)
+  {
+    int sum = 0;
+    for (int loop=0; loop<nDices; loop++)
+    {
+      sum += RandomRange(1,nFaces);
+    }
+    return sum;
+  }
 
 // Implementation
 private:
-	// Period parameters
-	static const int N = 624;
-	static const int M = 397;
-	static const unsigned long MATRIX_A = 0x9908b0dfUL;	/* constant vector a */
-	static const unsigned long UPPER_MASK = 0x80000000UL;	/* most significant w-r bits */
-	static const unsigned long LOWER_MASK = 0x7fffffffUL;	/* least significant r bits */
+  // Period parameters
+  static const int N = 624;
+  static const int M = 397;
+  static const unsigned long MATRIX_A = 0x9908b0dfUL;  /* constant vector a */
+  static const unsigned long UPPER_MASK = 0x80000000UL;  /* most significant w-r bits */
+  static const unsigned long LOWER_MASK = 0x7fffffffUL;  /* least significant r bits */
 
-	unsigned long mt[N]; /* the array for the state vector  */
-	int mti;
+  unsigned long mt[N]; /* the array for the state vector  */
+  int mti;
 };
 
 #endif

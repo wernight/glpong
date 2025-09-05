@@ -28,9 +28,9 @@
 #ifndef __STDAFX_H__
 #define __STDAFX_H__
 
-#ifdef WIN32											// If We're Under MSVC
-#pragma comment(lib, "OpenGL32.lib")					// We're Telling The Linker To Look For The OpenGL32.lib
-#pragma comment(lib, "GLu32.lib")						// The GLu32.lib Library...
+#ifdef WIN32                      // If We're Under MSVC
+#pragma comment(lib, "OpenGL32.lib")          // We're Telling The Linker To Look For The OpenGL32.lib
+#pragma comment(lib, "GLu32.lib")            // The GLu32.lib Library...
 #pragma comment(lib, "SDL2main.lib")
 #pragma comment(lib, "SDL2.lib")
 #pragma comment(lib, "SDL2_image.lib")
@@ -59,11 +59,11 @@ typedef unsigned long DWORD;
 #endif
 
 #ifdef _DEBUG
-# define ASSERT(f)			assert(f)
-# define VERIFY(f)			ASSERT(f)
+# define ASSERT(f)      assert(f)
+# define VERIFY(f)      ASSERT(f)
 #else
-# define ASSERT(f)			((void)0)
-# define VERIFY(f)			((void)(f))
+# define ASSERT(f)      ((void)0)
+# define VERIFY(f)      ((void)(f))
 #endif
 
 #endif

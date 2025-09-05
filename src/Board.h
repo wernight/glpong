@@ -33,57 +33,57 @@ class CBoard : public IObject
 {
 public:
 // Constructor
-	CBoard();
+  CBoard();
 
 // Implementation of IObject.
-	// Initialize the object.
-	bool Initialize();
+  // Initialize the object.
+  bool Initialize();
 
-	// Update the object.
-	void Update(float fTime);
+  // Update the object.
+  void Update(float fTime);
 
-	// Render the object.
-	void Render() const;
+  // Render the object.
+  void Render() const;
 
-	// Process event.
-	bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  // Process event.
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
 
 // Attributes
-	static const float GetTop() {
-		return 48.0f;
-	}
+  static const float GetTop() {
+    return 48.0f;
+  }
 
-	static const float GetBottom() {
-		return -48.0f;
-	}
+  static const float GetBottom() {
+    return -48.0f;
+  }
 
-	static const float GetLeft() {
-		return 64.0f;
-	}
+  static const float GetLeft() {
+    return 64.0f;
+  }
 
-	static const float GetRight() {
-		return -64.0f;
-	}
+  static const float GetRight() {
+    return -64.0f;
+  }
 
-	static const float GetWidth() {
-		return GetLeft() - GetRight();
-	}
-	static const float GetHeight() {
-		return GetTop() - GetBottom();
-	}
+  static const float GetWidth() {
+    return GetLeft() - GetRight();
+  }
+  static const float GetHeight() {
+    return GetTop() - GetBottom();
+  }
 
 // Operations
-	// Add points to a player's score.
-	void Score(bool bLeftPlayer);
+  // Add points to a player's score.
+  void Score(bool bLeftPlayer);
 
 // Implémentation
 private:
-	static void DrawDigitNumber(int nNumber);
+  static void DrawDigitNumber(int nNumber);
 
-	int			m_nLeftScore,
-				m_nRightScore;
-	float		m_fIlluminateLeftBorder,			// Illuminate the left border.
-				m_fIlluminateRightBorder;			// Illuminate the right border.
+  int      m_nLeftScore,
+        m_nRightScore;
+  float    m_fIlluminateLeftBorder,      // Illuminate the left border.
+        m_fIlluminateRightBorder;      // Illuminate the right border.
 };
 
 #endif

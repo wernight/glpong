@@ -33,54 +33,54 @@ class CPaddle : public IObject
 {
 public:
 // Constructor
-	CPaddle(bool bLeftPaddle);
+  CPaddle(bool bLeftPaddle);
 
 // Implementation of IObject.
-	// Initialize the object.
-	bool Initialize();
+  // Initialize the object.
+  bool Initialize();
 
-	// Update the object.
-	void Update(float fTime);
+  // Update the object.
+  void Update(float fTime);
 
-	// Render the object.
-	void Render() const;
+  // Render the object.
+  void Render() const;
 
-	// Process event.
-	bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  // Process event.
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
 
 // Attributes
-	static const float GetWidth() {
-		return 6.0f;
-	}
+  static const float GetWidth() {
+    return 6.0f;
+  }
 
-	static const float GetHeight() {
-		return 20.0f;
-	}
+  static const float GetHeight() {
+    return 20.0f;
+  }
 
-	inline float GetPosition() const {
-		return m_fY;
-	}
+  inline float GetPosition() const {
+    return m_fY;
+  }
 
 // Operations
-	// Move paddle upward.
-	void MoveUp();
+  // Move paddle upward.
+  void MoveUp();
 
-	// Move paddle downward.
-	void MoveDown();
+  // Move paddle downward.
+  void MoveDown();
 
-	// Stop moving paddle.
-	void Stop();
+  // Stop moving paddle.
+  void Stop();
 
-	// Illuminate paddle.
-	void Illuminate();
+  // Illuminate paddle.
+  void Illuminate();
 
 // Implementation
 protected:
-	bool	m_bLeftPaddle;
-	float	m_fSpeed,
-			m_fY,
-			m_fIlluminate;
-	GLuint	m_nGLPaddle;
+  bool  m_bLeftPaddle;
+  float  m_fSpeed,
+      m_fY,
+      m_fIlluminate;
+  GLuint  m_nGLPaddle;
 };
 
 #endif

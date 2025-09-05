@@ -23,7 +23,7 @@
 #ifndef __GLPONG_H__
 #define __GLPONG_H__
 
-#define NUM_TEXTURES		2		// Number of textures
+#define NUM_TEXTURES    2    // Number of textures
 
 // Forward declarations of functions included in this code module:
 void DrawFPS();

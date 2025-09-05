@@ -34,24 +34,24 @@ class CAiPaddle : public CPaddle
 {
 public:
 // Constructor
-	CAiPaddle(bool bLeftPaddle);
+  CAiPaddle(bool bLeftPaddle);
 
-	// Create the AI.
-	bool Create(CBall *pBall);
+  // Create the AI.
+  bool Create(CBall *pBall);
 
 // Overrides
-/*	// Initialize the object.
-	bool Initialize();*/
+/*  // Initialize the object.
+  bool Initialize();*/
 
-	// Update the object.
-	void Update(float fTime);
+  // Update the object.
+  void Update(float fTime);
 
-	// Process event.
-	bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  // Process event.
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
 
 // Implementation
 private:
-	CBall	*m_pBall;
+  CBall  *m_pBall;
 };
 
 #endif
