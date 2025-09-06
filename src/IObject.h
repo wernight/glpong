@@ -21,22 +21,20 @@
 
 #pragma once
 
-class IObject
-{
-public:
-  enum EEvent
-  {
-    eventMouseMove,    // xPos = LOWORD(lParam); yPos = HIWORD(lParam);
+class IObject {
+ public:
+  enum EEvent {
+    eventMouseMove,   // xPos = LOWORD(lParam); yPos = HIWORD(lParam);
     eventMouseClick,  // xPos = LOWORD(lParam); yPos = HIWORD(lParam);
-    eventChar,      // nVirtKey = (int) wParam; lKeyData = wParam;
-    eventKeyDown,    // nVirtKey = (int) wParam; lKeyData = wParam;
-    eventKeyUp      // nVirtKey = (int) wParam; lKeyData = wParam;
+    eventChar,        // nVirtKey = (int) wParam; lKeyData = wParam;
+    eventKeyDown,     // nVirtKey = (int) wParam; lKeyData = wParam;
+    eventKeyUp        // nVirtKey = (int) wParam; lKeyData = wParam;
   };
 
-// Constructors
-  virtual ~IObject() {};
+  // Constructors
+  virtual ~IObject(){};
 
-// Operations
+  // Operations
   /** Update the object.
    * @param fTime    Time elapsed between two updates.
    */

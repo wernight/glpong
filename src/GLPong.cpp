@@ -29,60 +29,56 @@
 // GLPong.cpp : Defines the entry point for the application.
 //
 
-#include "StdAfx.h"
 #include "GLPong.h"
 
 #include <filesystem>
 #include <memory>
 
-#include "Paddle.h"
 #include "AiPaddle.h"
+#include "Paddle.h"
+#include "StdAfx.h"
 
 constexpr int SCREEN_FREQUENCY = 60;  // 60Hz
 
 static std::filesystem::path GetResourcePath(const std::string& relative) {
-    const char* appdir = std::getenv("APPDIR");
-    if (!appdir) {
-        // Not running in an AppImage -> fallback to current path
-        return std::filesystem::current_path() / relative;
-    }
-    return std::filesystem::path(appdir) / relative;
+  const char* appdir = std::getenv("APPDIR");
+  if (!appdir) {
+    // Not running in an AppImage -> fallback to current path
+    return std::filesystem::current_path() / relative;
+  }
+  return std::filesystem::path(appdir) / relative;
 }
 
-static bool UserInputBoolean()
-{
+static bool UserInputBoolean() {
   std::string input;
   std::cin >> input;
   return !input.empty() && tolower(input[0]) == 'y';
 }
 
 // Resize And Initialize The GL Window
-static void ReSizeGLScene(GLsizei width, GLsizei height)
-{
+static void ReSizeGLScene(GLsizei width, GLsizei height) {
   if (height == 0)  // Prevent A Divide By Zero By
-    height = 1;  // Making Height Equal One
+    height = 1;     // Making Height Equal One
 
   glViewport(0, 0, width, height);
 
   glMatrixMode(GL_PROJECTION);  // Select The Projection Matrix
-  glLoadIdentity();  // Reset The Projection Matrix
-  gluPerspective(45.0f, (GLfloat)width/(GLfloat)height, 1, 1000);
+  glLoadIdentity();             // Reset The Projection Matrix
+  gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 1, 1000);
 
-  glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-  glLoadIdentity();  // Reset The Modelview Matrix
+  glMatrixMode(GL_MODELVIEW);  // Select The Modelview Matrix
+  glLoadIdentity();            // Reset The Modelview Matrix
 }
 
 // Load Bitmaps And Convert To Textures
-static GLuint LoadGLTextures(const char* filename)
-{
+static GLuint LoadGLTextures(const char* filename) {
   // Create storage space for the texture
-  SDL_Surface *sdl_surface;
+  SDL_Surface* sdl_surface;
 
   sdl_surface = IMG_Load(filename);
 
   // Load The Bitmap, Check For Errors.
-  if (sdl_surface == nullptr)
-  {
+  if (sdl_surface == nullptr) {
     std::cerr << "Failed to load texture: " << filename << std::endl;
     return 0;
   }
@@ -92,13 +88,12 @@ static GLuint LoadGLTextures(const char* filename)
 
   GLint ncolors = sdl_surface->format->BytesPerPixel;
   GLenum texture_format;
-  switch (ncolors)
-  {
+  switch (ncolors) {
     case 1:  // Alpha-only
       texture_format = GL_LUMINANCE;
       break;
 
-    case 3:   // R, G, and B channels
+    case 3:  // R, G, and B channels
       if (sdl_surface->format->Rmask == 0x000000ff)
         texture_format = GL_RGB;
       else
@@ -120,7 +115,8 @@ static GLuint LoadGLTextures(const char* filename)
 
   // Typical Texture Generation Using Data From The TGA ( CHANGE )
   glBindTexture(GL_TEXTURE_2D, gl_texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, ncolors, sdl_surface->w, sdl_surface->h, 0, texture_format, GL_UNSIGNED_BYTE, sdl_surface->pixels);
+  glTexImage2D(GL_TEXTURE_2D, 0, ncolors, sdl_surface->w, sdl_surface->h, 0, texture_format,
+               GL_UNSIGNED_BYTE, sdl_surface->pixels);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -130,30 +126,28 @@ static GLuint LoadGLTextures(const char* filename)
   return gl_texture;
 }
 
-GLPong::GLPong()
-{
-  // initialize SDL
+GLPong::GLPong() {
+// initialize SDL
 #ifdef _DEBUG
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0)
+  Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
 #else
-  if (SDL_Init(SDL_INIT_VIDEO) < 0)
+  Uint32 flags = SDL_INIT_VIDEO;
 #endif
-  {
+  if (SDL_Init(flags) < 0) {
     std::cerr << "Video initialization failed: " << SDL_GetError() << std::endl;
     throw std::runtime_error("Video initialization failed");
   }
   IMG_Init(IMG_INIT_PNG);
 
   // the flags to pass to SDL_SetVideoMode
-  Uint32 videoFlags;      // Flags to pass to SDL_SetVideoMode
-  videoFlags  = SDL_WINDOW_OPENGL;      // Enable OpenGL in SDL
-  videoFlags |= SDL_WINDOW_RESIZABLE;   // Enable window resizing
+  Uint32 videoFlags;                   // Flags to pass to SDL_SetVideoMode
+  videoFlags = SDL_WINDOW_OPENGL;      // Enable OpenGL in SDL
+  videoFlags |= SDL_WINDOW_RESIZABLE;  // Enable window resizing
 
   // Full-screen?
   std::cout << "Full-screen mode [Y/N]?";
-  if (UserInputBoolean())
-  {
-    videoFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;    // Enable full-screen mode
+  if (UserInputBoolean()) {
+    videoFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;  // Enable full-screen mode
     SDL_ShowCursor(SDL_DISABLE);
   }
 
@@ -169,18 +163,26 @@ GLPong::GLPong()
   constexpr int kHeight = 480;
 
   // Get a SDL surface
-  sdl_window_ = SDL_CreateWindow("GLPong", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, kWidth, kHeight, videoFlags);
-  if (!sdl_window_)
-  {
+  sdl_window_ = SDL_CreateWindow("GLPong", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, kWidth,
+                                 kHeight, videoFlags);
+  if (!sdl_window_) {
     std::cerr << "Video mode set failed: " << SDL_GetError() << std::endl;
     throw std::runtime_error("Video mode set failed");
   }
 
   gl_context_ = SDL_GL_CreateContext(sdl_window_);
-  if (!gl_context_)
-  {
+  if (!gl_context_) {
     std::cerr << "GL context creation failed: " << SDL_GetError() << std::endl;
     throw std::runtime_error("Video mode set failed");
+  }
+
+  // Initialize GLEW.
+  glewExperimental = GL_TRUE;
+  GLenum err = glewInit();
+  if (GLEW_OK != err) {
+    /* Problem: glewInit failed, something is seriously wrong. */
+    std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
+    throw std::runtime_error("GLEW initialization failed");
   }
 
   // Initialize our window.
@@ -190,76 +192,64 @@ GLPong::GLPong()
   ReSizeGLScene(kWidth, kHeight);
 }
 
-GLPong::~GLPong()
-{
-  if (gl_context_)
-    SDL_GL_DeleteContext(gl_context_);
-  if (sdl_window_ != nullptr)
-    SDL_DestroyWindow(sdl_window_);
+GLPong::~GLPong() {
+  if (gl_context_) SDL_GL_DeleteContext(gl_context_);
+  if (sdl_window_ != nullptr) SDL_DestroyWindow(sdl_window_);
   IMG_Quit();
   SDL_Quit();
 }
 
-void GLPong::ProcessEvents()
-{
+void GLPong::ProcessEvents() {
   // Handle the events in the queue
   static SDL_Event sdl_event;
-  while (SDL_PollEvent(&sdl_event))
-  {
-    switch (sdl_event.type)
-    {
-    case SDL_WINDOWEVENT:
-      if (sdl_event.window.event == SDL_WINDOWEVENT_RESIZED)
-        ReSizeGLScene(sdl_event.window.data1, sdl_event.window.data2);
-      break;
+  while (SDL_PollEvent(&sdl_event)) {
+    switch (sdl_event.type) {
+      case SDL_WINDOWEVENT:
+        if (sdl_event.window.event == SDL_WINDOWEVENT_RESIZED)
+          ReSizeGLScene(sdl_event.window.data1, sdl_event.window.data2);
+        break;
 
-    case SDL_KEYDOWN:
-      switch (sdl_event.key.keysym.sym)
-      {
-      case SDLK_ESCAPE:
-        SDL_Quit();
-        game_is_still_running_ = false;
-        return;
-      case SDLK_F1:
-        {
-          Uint32 flags = SDL_GetWindowFlags(sdl_window_);
-          if (flags & SDL_WINDOW_FULLSCREEN)
-               SDL_SetWindowFullscreen(sdl_window_, 0);  // back to windowed
-          else
-               SDL_SetWindowFullscreen(sdl_window_, SDL_WINDOW_FULLSCREEN);
+      case SDL_KEYDOWN:
+        switch (sdl_event.key.keysym.sym) {
+          case SDLK_ESCAPE:
+            SDL_Quit();
+            game_is_still_running_ = false;
+            return;
+          case SDLK_F1: {
+            Uint32 flags = SDL_GetWindowFlags(sdl_window_);
+            if (flags & SDL_WINDOW_FULLSCREEN)
+              SDL_SetWindowFullscreen(sdl_window_, 0);  // back to windowed
+            else
+              SDL_SetWindowFullscreen(sdl_window_, SDL_WINDOW_FULLSCREEN);
+          } break;
+          case SDLK_PAUSE:
+            is_active_ = !is_active_;
+            break;
+          default:
+            scene_.ProcessEvent(IObject::eventKeyDown, sdl_event.key.keysym.sym, 0);
         }
         break;
-      case SDLK_PAUSE:
-        is_active_ = !is_active_;
+
+      case SDL_KEYUP:
+        scene_.ProcessEvent(IObject::eventKeyUp, 0, sdl_event.key.keysym.sym);
         break;
-      default:
-        scene_.ProcessEvent(IObject::eventKeyDown, sdl_event.key.keysym.sym, 0);
-      }
-      break;
 
-    case SDL_KEYUP:
-      scene_.ProcessEvent(IObject::eventKeyUp, 0, sdl_event.key.keysym.sym);
-      break;
-
-    case SDL_QUIT:
-      game_is_still_running_ = false;
-      break;
+      case SDL_QUIT:
+        game_is_still_running_ = false;
+        break;
     }
   }
 }
 
-void GLPong::Draw()
-{
+void GLPong::Draw() {
   ProcessEvents();
-  if (!is_active_)
-    return;
+  if (!is_active_) return;
 
   // Game logic update
   Uint32 cur_ticks = SDL_GetTicks();
   float dt = (cur_ticks - prev_ticks_) / 1000.0f;
   prev_ticks_ = cur_ticks;
-  if (dt > 0.3f)
-    dt = 0.0f;
+  if (dt > 0.3f) dt = 0.0f;
 
   scene_.Update(dt);
 
@@ -279,8 +269,7 @@ void GLPong::Draw()
   }
 
   // Render scene
-  if (cur_ticks - last_draw_ticks_ > 1000/SCREEN_FREQUENCY)
-  {
+  if (cur_ticks - last_draw_ticks_ > 1000 / SCREEN_FREQUENCY) {
     last_draw_ticks_ = cur_ticks;
     DrawGLScene();
     SDL_GL_SwapWindow(sdl_window_);
@@ -290,12 +279,10 @@ void GLPong::Draw()
   DrawFPS();
 }
 
-bool GLPong::Run()
-{
+bool GLPong::Run() {
   // Main loop
   last_draw_ticks_ = prev_ticks_ = SDL_GetTicks();
-  while (game_is_still_running_)
-  {
+  while (game_is_still_running_) {
     Draw();
 
     if (is_active_)
@@ -308,39 +295,35 @@ bool GLPong::Run()
   return true;
 }
 
-void GLPong::DrawFPS()
-{
-  static int  frames = 0;
+void GLPong::DrawFPS() {
+  static int frames = 0;
   static Uint32 start_ticks = SDL_GetTicks();
-  Uint32    current_ticks = SDL_GetTicks();
+  Uint32 current_ticks = SDL_GetTicks();
 
   frames++;
-  if (current_ticks - start_ticks >= 5000)
-  {
+  if (current_ticks - start_ticks >= 5000) {
     GLfloat fSeconds = (current_ticks - start_ticks) / 1000.0f;
     GLfloat fFPS = frames / fSeconds;
-    std::cout << frames << " frames in " << fSeconds << " seconds = " << fFPS << " FPS" << std::endl;
+    std::cout << frames << " frames in " << fSeconds << " seconds = " << fFPS << " FPS"
+              << std::endl;
     start_ticks = current_ticks;
     frames = 0;
   }
 }
 
-void GLPong::DrawGLScene()
-{
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear The Screen And The Depth Buffer
-  glLoadIdentity();  // Reset The Modelview Matrix
+void GLPong::DrawGLScene() {
+  // Clear The Screen And The Depth Buffer
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // Reset The Modelview Matrix
+  glLoadIdentity();
 
   // Loocking to...
-#if false
+#if true
   // 3D Look.
-  gluLookAt(  0,  -120,  -100,
-        0,  0,    0,
-        0,  1,    0);
+  gluLookAt(0, -120, -100, 0, 0, 0, 0, 1, 0);
 #else
   // 2D Look.
-  gluLookAt(  0,  17,    -180,
-        0,  17,    0,
-        0,  1,    0);
+  gluLookAt(0, 17, -180, 0, 17, 0, 0, 1, 0);
 #endif
 
   // Scene manager
@@ -348,38 +331,36 @@ void GLPong::DrawGLScene()
 }
 
 // All Setup For OpenGL Goes Here
-void GLPong::InitGL(bool vs_ai)
-{
+void GLPong::InitGL(bool vs_ai) {
   std::shared_ptr<AiPaddle> ai_paddle = std::make_shared<AiPaddle>(true);
   std::shared_ptr<Paddle> paddle_left = vs_ai ? ai_paddle : std::make_shared<Paddle>(true);
-  auto paddle_right = std::make_shared<Paddle>(false);;
+  auto paddle_right = std::make_shared<Paddle>(false);
   board_ = std::make_shared<Board>();
-  ball_ = std::make_shared<Ball>(
-    board_, paddle_left, paddle_right, particle_texture_);
+  ball_ = std::make_shared<Ball>(board_, paddle_left, paddle_right, particle_texture_);
   ai_paddle->TrackBall(ball_);
 
-  constexpr GLfloat LightAmbient[]=    { 0.5f, 0.5f, 0.5f, 1.0f };
-  constexpr GLfloat LightDiffuse[]=    { 1.0f, 1.0f, 1.0f, 1.0f };
+  constexpr GLfloat LightAmbient[] = {0.5f, 0.5f, 0.5f, 1.0f};
+  constexpr GLfloat LightDiffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
   particle_texture_ = LoadGLTextures(GetResourcePath("particle.png").c_str());
   star_texture_ = LoadGLTextures(GetResourcePath("small_blur_star.png").c_str());
 
-  glShadeModel(GL_SMOOTH);  // Enable Smooth Shading
+  glShadeModel(GL_SMOOTH);               // Enable Smooth Shading
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // Black Background
-  glClearDepth(1.0f);  // Depth Buffer Setup
+  glClearDepth(1.0f);                    // Depth Buffer Setup
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
 
   // Lumières
-  GLfloat LightPosition[]=  { 30.0f, 50.0f, -100.0f, 1.0f };
-  glLightfv(GL_LIGHT1, GL_POSITION,LightPosition);  // Position The Light
+  GLfloat LightPosition[] = {30.0f, 50.0f, -100.0f, 1.0f};
+  glLightfv(GL_LIGHT1, GL_POSITION, LightPosition);  // Position The Light
 
   glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient);  // Setup The Ambient Light
   glLightfv(GL_LIGHT1, GL_DIFFUSE, LightDiffuse);  // Setup The Diffuse Light
-  glEnable(GL_LIGHT1);  // Enable Light One
-  glEnable(GL_LIGHTING);  // Enable Light One
+  glEnable(GL_LIGHT1);                             // Enable Light One
+  glEnable(GL_LIGHTING);                           // Enable Light One
   glEnable(GL_COLOR_MATERIAL);
   glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
   glBlendFunc(GL_ONE, GL_ONE);

@@ -1,10 +1,13 @@
-#!/bin/bash -ex
+#!/bin/bash
+set -ex
+
 CODEDIR=/code
 
 BUILDDIR=/tmp/glpong
 mkdir -p /tmp/glpong
 cmake \
     -B $BUILDDIR \
+    -DCMAKE_BUILD_TYPE=Debug \
     -S $CODEDIR
 cmake --build $BUILDDIR
 

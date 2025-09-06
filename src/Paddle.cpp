@@ -20,205 +20,202 @@
  * Web : www.beroux.com
  */
 
-#include "StdAfx.h"
 #include "Paddle.h"
+
+#include <vector>
+
 #include "Board.h"
+#include "StdAfx.h"
 
-#define PADDLE_BEVEL      4.0f
-#define  PADDLE_SPEED      150.0f
-#define  PADDLE_ILLUMINATE    0.5f
-#define  PADDLE_ILLUMINATE_FADE  0.3f
+constexpr float kPaddleBevel = 4.0f;
+constexpr float kPaddleSpeed = 150.0f;
+constexpr float kPaddleIlluminate = 0.5f;
+constexpr float kPaddleIlluminateFade = 0.3f;
 
-// Constructor
-Paddle::Paddle(bool bLeftPaddle) :
-  m_fSpeed(0.0f),
-  m_fY(0.0f),
-  m_fIlluminate(0.0f),
-  m_bLeftPaddle(bLeftPaddle)
-{
-  m_nGLPaddle = glGenLists(1);
-  glNewList(m_nGLPaddle, GL_COMPILE);
-  if (m_bLeftPaddle)
-  {
-    glBegin(GL_QUADS);
-    glNormal3f(0.0f, 0.0f, -1.0f);
-    glVertex3f(Board::GetLeft(), GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetLeft(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetLeft()-GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
+namespace {
 
-    glNormal3f(-1.0f, 0.0f, 0.0f);
-    glVertex3f(Board::GetLeft()-GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(Board::GetLeft()-GetWidth(), GetHeight()/2.0f, 0);
+struct Vertex {
+  GLfloat position[3];
+  GLfloat normal[3];
+};
 
-    glNormal3f(0.0f, -1.0f, 0.0f);
-    glVertex3f(Board::GetLeft(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetLeft(), -GetHeight()/2.0f, 0);
-    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glEnd();
+}  // namespace
+
+Paddle::Paddle(bool is_left_paddle)
+    : speed_(0.0f), y_(0.0f), illuminate_(0.0f), left_paddle_(is_left_paddle) {
+  std::vector<Vertex> vertices;
+  if (left_paddle_) {
+    vertices.insert(
+        vertices.end(),
+        {
+            // Front face
+            {{Board::GetLeft(), GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
+            {{Board::GetLeft(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
+             {0.0f, 0.0f, -1.0f}},
+            {{Board::GetLeft() - GetWidth(), GetHeight() / 2.0f, -kPaddleBevel},
+             {0.0f, 0.0f, -1.0f}},
+            // Left face
+            {{Board::GetLeft() - GetWidth(), GetHeight() / 2.0f, -kPaddleBevel},
+             {-1.0f, 0.0f, 0.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
+             {-1.0f, 0.0f, 0.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, 0}, {-1.0f, 0.0f, 0.0f}},
+            {{Board::GetLeft() - GetWidth(), GetHeight() / 2.0f, 0}, {-1.0f, 0.0f, 0.0f}},
+            // Bottom face
+            {{Board::GetLeft(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, -1.0f, 0.0f}},
+            {{Board::GetLeft(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
+             {0.0f, -1.0f, 0.0f}},
+        });
+  } else {
+    vertices.insert(
+        vertices.end(),
+        {
+            // Front face
+            {{Board::GetRight() + GetWidth(), GetHeight() / 2.0f, -kPaddleBevel},
+             {0.0f, 0.0f, -1.0f}},
+            {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
+             {0.0f, 0.0f, -1.0f}},
+            {{Board::GetRight(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
+            {{Board::GetRight(), GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
+            // Right face
+            {{Board::GetRight() + GetWidth(), GetHeight() / 2.0f, 0}, {1.0f, 0.0f, 0.0f}},
+            {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, 0}, {1.0f, 0.0f, 0.0f}},
+            {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
+             {1.0f, 0.0f, 0.0f}},
+            {{Board::GetRight() + GetWidth(), GetHeight() / 2.0f, -kPaddleBevel},
+             {1.0f, 0.0f, 0.0f}},
+            // Bottom face
+            {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
+             {0.0f, -1.0f, 0.0f}},
+            {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
+            {{Board::GetRight(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
+            {{Board::GetRight(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, -1.0f, 0.0f}},
+        });
   }
-  else
-  {
-    glBegin(GL_QUADS);
-    glNormal3f(0.0f, 0.0f, -1.0f);
-    glVertex3f(Board::GetRight()+GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetRight(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetRight(), GetHeight()/2.0f, -PADDLE_BEVEL);
+  vertex_count_ = vertices.size();
 
-    glNormal3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(Board::GetRight()+GetWidth(), GetHeight()/2.0f, 0);
-    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetRight()+GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
+  glGenVertexArrays(1, &vao_);
+  glGenBuffers(1, &vbo_);
 
-    glNormal3f(0.0f, -1.0f, 0.0f);
-    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(Board::GetRight(), -GetHeight()/2.0f, 0);
-    glVertex3f(Board::GetRight(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glEnd();
-  }
-  glEndList();
+  glBindVertexArray(vao_);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, position));
+
+  glEnableClientState(GL_NORMAL_ARRAY);
+  glNormalPointer(GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 }
 
-void Paddle::Update(float fTime)
-{
+Paddle::~Paddle() {
+  if (vao_) glDeleteVertexArrays(1, &vao_);
+  if (vbo_) glDeleteBuffers(1, &vbo_);
+}
+
+void Paddle::Update(float fTime) {
   // Update paddle position.
-  m_fY += m_fSpeed * fTime;
-  if (m_fY > Board::GetTop() - GetHeight()/2.0f)
-  {
-    m_fY = Board::GetTop() - GetHeight()/2.0f;;
-    m_fSpeed = 0.0f;
+  y_ += speed_ * fTime;
+  if (y_ > Board::GetTop() - GetHeight() / 2.0f) {
+    y_ = Board::GetTop() - GetHeight() / 2.0f;
+    ;
+    speed_ = 0.0f;
   }
-  if (m_fY < Board::GetBottom() + GetHeight()/2.0f)
-  {
-    m_fY = Board::GetBottom() + GetHeight()/2.0f;
-    m_fSpeed = 0.0f;
+  if (y_ < Board::GetBottom() + GetHeight() / 2.0f) {
+    y_ = Board::GetBottom() + GetHeight() / 2.0f;
+    speed_ = 0.0f;
   }
 
   // Fade hightlight.
-  if (m_fIlluminate > 0.0f)
-    m_fIlluminate -= PADDLE_ILLUMINATE_FADE*fTime;
+  if (illuminate_ > 0.0f)
+    illuminate_ -= kPaddleIlluminateFade * fTime;
   else
-    m_fIlluminate = 0.0f;
+    illuminate_ = 0.0f;
 }
 
-/** Render the object.
- */
-void Paddle::Render() const
-{
+void Paddle::Render() const {
   // Paddle.
   glPushMatrix();
-  glTranslatef(0, m_fY, 0);
-  glColor3f(m_fIlluminate, 1.0f, m_fIlluminate);
-  glCallList(m_nGLPaddle);
+  glTranslatef(0, y_, 0);
+  glColor3f(illuminate_, 1.0f, illuminate_);
+
+  glBindVertexArray(vao_);
+  glDrawArrays(GL_QUADS, 0, vertex_count_);
+  glBindVertexArray(0);
+
   glPopMatrix();
 }
 
-/** Process event.
- * The object receive an event to process.
- * If he has processed this event and it should not be processed by
- * any other object, then it return true.
- *
- * @param nEvent  Type of event (mouse click, keyboard, ...).
- * @param wParam  A value depending of the event type.
- * @param lParam  A value depending of the event type.
- * @return True if the message has been processed.
- */
-bool Paddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
-{
-  switch (nEvent)
-  {
-  case eventKeyDown:
-    switch (wParam)
-    {
-    case SDLK_LSHIFT:
-      if (m_bLeftPaddle)
-      {
-        MoveUp();
-        return true;
+bool Paddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {
+  switch (nEvent) {
+    case eventKeyDown:
+      switch (wParam) {
+        case SDLK_LSHIFT:
+          if (left_paddle_) {
+            MoveUp();
+            return true;
+          }
+          break;
+        case SDLK_LCTRL:
+          if (left_paddle_) {
+            MoveDown();
+            return true;
+          }
+          break;
+        case SDLK_UP:
+          if (!left_paddle_) {
+            MoveUp();
+            return true;
+          }
+          break;
+        case SDLK_DOWN:
+          if (!left_paddle_) {
+            MoveDown();
+            return true;
+          }
+          break;
       }
       break;
-    case SDLK_LCTRL:
-      if (m_bLeftPaddle)
-      {
-        MoveDown();
-        return true;
-      }
-      break;
-    case SDLK_UP:
-      if (!m_bLeftPaddle)
-      {
-        MoveUp();
-        return true;
-      }
-      break;
-    case SDLK_DOWN:
-      if (!m_bLeftPaddle)
-      {
-        MoveDown();
-        return true;
-      }
-      break;
-    }
-    break;
 
-  case eventKeyUp:
-    switch (lParam)
-    {
-    case SDLK_LSHIFT:
-    case SDLK_LCTRL:
-      if (m_bLeftPaddle)
-      {
-        Stop();
-        return true;
+    case eventKeyUp:
+      switch (lParam) {
+        case SDLK_LSHIFT:
+        case SDLK_LCTRL:
+          if (left_paddle_) {
+            Stop();
+            return true;
+          }
+          break;
+        case SDLK_UP:
+        case SDLK_DOWN:
+          if (!left_paddle_) {
+            Stop();
+            return true;
+          }
+          break;
       }
       break;
-    case SDLK_UP:
-    case SDLK_DOWN:
-      if (!m_bLeftPaddle)
-      {
-        Stop();
-        return true;
-      }
-      break;
-    }
-    break;
 
-  case eventMouseMove:
-  case eventMouseClick:
-  case eventChar:
-    break;
+    case eventMouseMove:
+    case eventMouseClick:
+    case eventChar:
+      break;
   }
 
   return false;
 }
 
-// Move paddle upward.
-void Paddle::MoveUp()
-{
-  m_fSpeed = PADDLE_SPEED;
-}
+void Paddle::MoveUp() { speed_ = kPaddleSpeed; }
 
-// Move paddle downward.
-void Paddle::MoveDown()
-{
-  m_fSpeed = -PADDLE_SPEED;
-}
+void Paddle::MoveDown() { speed_ = -kPaddleSpeed; }
 
-// Stop moving paddle.
-void Paddle::Stop()
-{
-  m_fSpeed = 0.0f;
-}
+void Paddle::Stop() { speed_ = 0.0f; }
 
-// Illuminate paddle.
-void Paddle::Illuminate()
-{
-  m_fIlluminate = PADDLE_ILLUMINATE;
-}
-
+void Paddle::Illuminate() { illuminate_ = kPaddleIlluminate; }

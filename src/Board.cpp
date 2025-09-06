@@ -20,288 +20,411 @@
  * Web : www.beroux.com
  */
 
-#include "StdAfx.h"
 #include "Board.h"
 
-constexpr float BORDER_BEVEL = 4.0f;
-constexpr float BORDER_WIDTH = 4.0f;
+#include <vector>
 
-constexpr float ILLUMINATE_DURATION = 0.5f;
+#include "StdAfx.h"
 
-constexpr float DIGIT_HEIGHT = 20.0f;
-constexpr float DIGIT_WIDTH = 12.0f;
-constexpr float DIGIT_BORDER = 2.0f;
-constexpr float DIGIT_INNER_SPACING = 0.6f;
-constexpr float DIGIT_SPACING = 3.0f;
+constexpr float kBorderBevel = 4.0f;
+constexpr float kBorderWidth = 4.0f;
 
-// Constructor
-Board::Board() :
-  m_nLeftScore(0),
-  m_nRightScore(0),
-  m_fIlluminateLeftBorder(0.0f),
-  m_fIlluminateRightBorder(0.0f),
-  m_bIsGameOver(false)
-{
-}
+constexpr float kIlluminate_Duration = 0.5f;
 
-void Board::Reset()
-{
-  m_nLeftScore = m_nRightScore = 0;
-  m_bIsGameOver = false;
-}
+constexpr float kDigitHeight = 20.0f;
+constexpr float kDigitWidth = 12.0f;
+constexpr float kDigitBorder = 2.0f;
+constexpr float kDigitInnerSpacing = 0.6f;
+constexpr float kDigitSpacing = 3.0f;
 
-void Board::Update(float fTime)
-{
-  // Illumination.
-  if (m_fIlluminateLeftBorder > 0.0f)
-    m_fIlluminateLeftBorder -= fTime;
-  else
-    m_fIlluminateLeftBorder = 0.0f;
+namespace {
+struct Vertex {
+  GLfloat position[3];
+  GLfloat normal[3];
+};
+}  // namespace
 
-  if (m_fIlluminateRightBorder > 0.0f)
-    m_fIlluminateRightBorder -= fTime;
-  else
-    m_fIlluminateRightBorder = 0.0f;
-}
-
-void Board::Render() const
-{
+Board::Board()
+    : left_score_(0),
+      right_score_(0),
+      illuminate_left_border_(0.0f),
+      illuminate_right_border_(0.0f),
+      is_game_over_(false) {
+  // --- Board geometry
+  std::vector<Vertex> vertices;
   // Ground
-  glBegin(GL_QUADS);
-  // Background
+  vertices.insert(vertices.end(), {
+                                      {{GetLeft(), GetTop(), 0}, {0.0f, 0.0f, -1.0f}},
+                                      {{GetLeft(), GetBottom(), 0}, {0.0f, 0.0f, -1.0f}},
+                                      {{GetRight(), GetBottom(), 0}, {0.0f, 0.0f, -1.0f}},
+                                      {{GetRight(), GetTop(), 0}, {0.0f, 0.0f, -1.0f}},
+                                  });
+
+  // Border top
+  vertices.insert(
+      vertices.end(),
+      {
+          {{GetLeft() + kBorderWidth, GetTop() + kBorderWidth, -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+          {{GetLeft(), GetTop(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+          {{GetRight(), GetTop(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+          {{GetRight() - kBorderWidth, GetTop() + kBorderWidth, -kBorderBevel},
+           {0.0f, 0.0f, -1.0f}},
+
+          {{GetLeft(), GetTop(), -kBorderBevel}, {0.0f, -1.0f, 0.0f}},
+          {{GetLeft(), GetTop(), 0}, {0.0f, -1.0f, 0.0f}},
+          {{GetRight(), GetTop(), 0}, {0.0f, -1.0f, 0.0f}},
+          {{GetRight(), GetTop(), -kBorderBevel}, {0.0f, -1.0f, 0.0f}},
+      });
+
+  // Border left
+  vertices.insert(
+      vertices.end(),
+      {
+          {{GetLeft() + kBorderWidth, GetTop() + kBorderWidth, -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+          {{GetLeft() + kBorderWidth, GetBottom() - kBorderWidth, -kBorderBevel},
+           {0.0f, 0.0f, -1.0f}},
+          {{GetLeft(), GetBottom(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+          {{GetLeft(), GetTop(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+
+          {{GetLeft(), GetTop(), -kBorderBevel}, {-1.0f, 0.0f, 0.0f}},
+          {{GetLeft(), GetBottom(), -kBorderBevel}, {-1.0f, 0.0f, 0.0f}},
+          {{GetLeft(), GetBottom(), 0}, {-1.0f, 0.0f, 0.0f}},
+          {{GetLeft(), GetTop(), 0}, {-1.0f, 0.0f, 0.0f}},
+      });
+
+  // Border right
+  vertices.insert(vertices.end(),
+                  {
+                      {{GetRight(), GetTop(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+                      {{GetRight(), GetBottom(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+                      {{GetRight() - kBorderWidth, GetBottom() - kBorderWidth, -kBorderBevel},
+                       {0.0f, 0.0f, -1.0f}},
+                      {{GetRight() - kBorderWidth, GetTop() + kBorderWidth, -kBorderBevel},
+                       {0.0f, 0.0f, -1.0f}},
+
+                      {{GetRight(), GetTop(), 0}, {1.0f, 0.0f, 0.0f}},
+                      {{GetRight(), GetBottom(), 0}, {1.0f, 0.0f, 0.0f}},
+                      {{GetRight(), GetBottom(), -kBorderBevel}, {1.0f, 0.0f, 0.0f}},
+                      {{GetRight(), GetTop(), -kBorderBevel}, {1.0f, 0.0f, 0.0f}},
+                  });
+
+  // Border bottom
+  vertices.insert(
+      vertices.end(),
+      {
+          {{GetLeft(), GetBottom(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+          {{GetLeft() + kBorderWidth, GetBottom() - kBorderWidth, -kBorderBevel},
+           {0.0f, 0.0f, -1.0f}},
+          {{GetRight() - kBorderWidth, GetBottom() - kBorderWidth, -kBorderBevel},
+           {0.0f, 0.0f, -1.0f}},
+          {{GetRight(), GetBottom(), -kBorderBevel}, {0.0f, 0.0f, -1.0f}},
+
+          {{GetLeft() + kBorderWidth, GetBottom() - kBorderWidth, -kBorderBevel},
+           {0.0f, -1.0f, 0.0f}},
+          {{GetLeft() + kBorderWidth, GetBottom() - kBorderWidth, 0}, {0.0f, -1.0f, 0.0f}},
+          {{GetRight() - kBorderWidth, GetBottom() - kBorderWidth, 0}, {0.0f, -1.0f, 0.0f}},
+          {{GetRight() - kBorderWidth, GetBottom() - kBorderWidth, -kBorderBevel},
+           {0.0f, -1.0f, 0.0f}},
+      });
+
+  glGenVertexArrays(1, &vao_);
+  glGenBuffers(1, &vbo_);
+  glBindVertexArray(vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, position));
+  glEnableClientState(GL_NORMAL_ARRAY);
+  glNormalPointer(GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, normal));
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  // --- Digits geometry
+  for (int i = 0; i < kDigits; ++i) {
+    std::vector<GLfloat> digit_vertices;
+    bool a, b, c, d, e, f, g;
+    switch (i) {
+      case 0:
+        a = true;
+        b = true;
+        c = true;
+        d = true;
+        e = true;
+        f = true;
+        g = false;
+        break;
+      case 1:
+        a = false;
+        b = false;
+        c = false;
+        d = true;
+        e = true;
+        f = false;
+        g = false;
+        break;
+      case 2:
+        a = false;
+        b = true;
+        c = true;
+        d = false;
+        e = true;
+        f = true;
+        g = true;
+        break;
+      case 3:
+        a = false;
+        b = false;
+        c = true;
+        d = true;
+        e = true;
+        f = true;
+        g = true;
+        break;
+      case 4:
+        a = true;
+        b = false;
+        c = false;
+        d = true;
+        e = true;
+        f = false;
+        g = true;
+        break;
+      case 5:
+        a = true;
+        b = false;
+        c = true;
+        d = true;
+        e = false;
+        f = true;
+        g = true;
+        break;
+      case 6:
+        a = true;
+        b = true;
+        c = true;
+        d = true;
+        e = false;
+        f = true;
+        g = true;
+        break;
+      case 7:
+        a = false;
+        b = false;
+        c = false;
+        d = true;
+        e = true;
+        f = true;
+        g = false;
+        break;
+      case 8:
+        a = true;
+        b = true;
+        c = true;
+        d = true;
+        e = true;
+        f = true;
+        g = true;
+        break;
+      case 9:
+        a = true;
+        b = false;
+        c = true;
+        d = true;
+        e = true;
+        f = true;
+        g = true;
+        break;
+    }
+
+    if (a) {
+      digit_vertices.insert(digit_vertices.end(),
+                            {0.0f, kDigitHeight - kDigitInnerSpacing, 0.0f,
+                             kDigitHeight / 2.0f + kDigitInnerSpacing, -kDigitBorder,
+                             kDigitHeight / 2.0f + kDigitBorder / 2.0f + kDigitInnerSpacing,
+                             -kDigitBorder, kDigitHeight - kDigitBorder - kDigitInnerSpacing});
+    }
+    if (b) {
+      digit_vertices.insert(
+          digit_vertices.end(),
+          {0.0f, kDigitHeight / 2.0f - kDigitInnerSpacing, 0.0f, kDigitInnerSpacing,
+           -kDigitBorder, kDigitBorder + kDigitInnerSpacing, -kDigitBorder,
+           kDigitHeight / 2.0f - kDigitBorder / 2.0f - kDigitInnerSpacing});
+    }
+    if (c) {
+      digit_vertices.insert(digit_vertices.end(),
+                            {-kDigitInnerSpacing, 0.0f, -kDigitWidth + kDigitInnerSpacing, 0.0f,
+                             -kDigitWidth + kDigitInnerSpacing + kDigitBorder, kDigitBorder,
+                             -kDigitInnerSpacing - kDigitBorder, kDigitBorder});
+    }
+    if (d) {
+      digit_vertices.insert(
+          digit_vertices.end(),
+          {-kDigitWidth, kDigitHeight / 2.0f - kDigitInnerSpacing, -kDigitWidth + kDigitBorder,
+           kDigitHeight / 2.0f - kDigitBorder / 2.0f - kDigitInnerSpacing,
+           -kDigitWidth + kDigitBorder, kDigitBorder + kDigitInnerSpacing, -kDigitWidth,
+           kDigitInnerSpacing});
+    }
+    if (e) {
+      digit_vertices.insert(
+          digit_vertices.end(),
+          {-kDigitWidth, kDigitHeight - kDigitInnerSpacing, -kDigitWidth + kDigitBorder,
+           kDigitHeight - kDigitBorder - kDigitInnerSpacing, -kDigitWidth + kDigitBorder,
+           kDigitHeight / 2.0f + kDigitBorder / 2.0f + kDigitInnerSpacing, -kDigitWidth,
+           kDigitHeight / 2.0f + kDigitInnerSpacing});
+    }
+    if (f) {
+      digit_vertices.insert(
+          digit_vertices.end(),
+          {-kDigitInnerSpacing, kDigitHeight, -kDigitInnerSpacing - kDigitBorder,
+           kDigitHeight - kDigitBorder, -kDigitWidth + kDigitInnerSpacing + kDigitBorder,
+           kDigitHeight - kDigitBorder, -kDigitWidth + kDigitInnerSpacing, kDigitHeight});
+    }
+    if (g) {
+      digit_vertices.insert(digit_vertices.end(),
+                            {-kDigitInnerSpacing, kDigitHeight / 2.0f,
+                             -kDigitWidth + kDigitInnerSpacing, kDigitHeight / 2.0f,
+                             -kDigitWidth + kDigitBorder, kDigitHeight / 2.0f + kDigitBorder / 2.0f,
+                             -kDigitBorder, kDigitHeight / 2.0f + kDigitBorder / 2.0f});
+      digit_vertices.insert(digit_vertices.end(),
+                            {-kDigitInnerSpacing, kDigitHeight / 2.0f, -kDigitBorder,
+                             kDigitHeight / 2.0f - kDigitBorder / 2.0f, -kDigitWidth + kDigitBorder,
+                             kDigitHeight / 2.0f - kDigitBorder / 2.0f,
+                             -kDigitWidth + kDigitInnerSpacing, kDigitHeight / 2.0f});
+    }
+    digit_vertex_counts_[i] = digit_vertices.size() / 2;
+
+    glGenVertexArrays(1, &digit_vaos_[i]);
+    glGenBuffers(1, &digit_vbos_[i]);
+    glBindVertexArray(digit_vaos_[i]);
+    glBindBuffer(GL_ARRAY_BUFFER, digit_vbos_[i]);
+    glBufferData(GL_ARRAY_BUFFER, digit_vertices.size() * sizeof(GLfloat), digit_vertices.data(),
+                 GL_STATIC_DRAW);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(2, GL_FLOAT, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+  }
+}
+
+Board::~Board() {
+  if (vao_) glDeleteVertexArrays(1, &vao_);
+  if (vbo_) glDeleteBuffers(1, &vbo_);
+  for (int i = 0; i < kDigits; ++i) {
+    if (digit_vaos_[i]) glDeleteVertexArrays(1, &digit_vaos_[i]);
+    if (digit_vbos_[i]) glDeleteBuffers(1, &digit_vbos_[i]);
+  }
+}
+
+void Board::Reset() {
+  left_score_ = right_score_ = 0;
+  is_game_over_ = false;
+}
+
+void Board::Update(float fTime) {
+  // Illumination.
+  if (illuminate_left_border_ > 0.0f)
+    illuminate_left_border_ -= fTime;
+  else
+    illuminate_left_border_ = 0.0f;
+
+  if (illuminate_right_border_ > 0.0f)
+    illuminate_right_border_ -= fTime;
+  else
+    illuminate_right_border_ = 0.0f;
+}
+
+void Board::Render() const {
+  glBindVertexArray(vao_);
+
+  // Ground
   glColor3f(0.0f, 0.15f, 0.0f);
-  glNormal3f(0.0f, 0.0f, -1.0f);
-  glVertex3f(GetLeft(), GetTop(), 0);
-  glVertex3f(GetLeft(), GetBottom(), 0);
-  glVertex3f(GetRight(), GetBottom(), 0);
-  glVertex3f(GetRight(), GetTop(), 0);
+  glDrawArrays(GL_QUADS, 0, 4);
 
   glColor3f(0.0f, 0.4f, 0.0f);
   // Border top
-  glNormal3f(0.0f, 0.0f, -1.0f);
-  glVertex3f(GetLeft()+BORDER_WIDTH, GetTop()+BORDER_WIDTH, -BORDER_BEVEL);
-  glVertex3f(GetLeft(), GetTop(), -BORDER_BEVEL);
-  glVertex3f(GetRight(), GetTop(), -BORDER_BEVEL);
-  glVertex3f(GetRight()-BORDER_WIDTH, GetTop()+BORDER_WIDTH, -BORDER_BEVEL);
-
-  glNormal3f(0.0f, -1.0f, 0.0f);
-  glVertex3f(GetLeft(), GetTop(), -BORDER_BEVEL);
-  glVertex3f(GetLeft(), GetTop(), 0);
-  glVertex3f(GetRight(), GetTop(), 0);
-  glVertex3f(GetRight(), GetTop(), -BORDER_BEVEL);
+  glDrawArrays(GL_QUADS, 4, 8);
 
   // Border left
-  glColor3f(0.0f+m_fIlluminateLeftBorder, 0.4f+m_fIlluminateLeftBorder, 0.0f+m_fIlluminateLeftBorder);
-  glNormal3f(0.0f, 0.0f, -1.0f);
-  glVertex3f(GetLeft()+BORDER_WIDTH, GetTop()+BORDER_WIDTH, -BORDER_BEVEL);
-  glVertex3f(GetLeft()+BORDER_WIDTH, GetBottom()-BORDER_WIDTH, -BORDER_BEVEL);
-  glVertex3f(GetLeft(), GetBottom(), -BORDER_BEVEL);
-  glVertex3f(GetLeft(), GetTop(), -BORDER_BEVEL);
-
-  glNormal3f(-1.0f, 0.0f, 0.0f);
-  glVertex3f(GetLeft(), GetTop(), -BORDER_BEVEL);
-  glVertex3f(GetLeft(), GetBottom(), -BORDER_BEVEL);
-  glVertex3f(GetLeft(), GetBottom(), 0);
-  glVertex3f(GetLeft(), GetTop(), 0);
-  glColor3f(0.0f, 0.4f, 0.0f);
+  glColor3f(0.0f + illuminate_left_border_, 0.4f + illuminate_left_border_,
+            0.0f + illuminate_left_border_);
+  glDrawArrays(GL_QUADS, 12, 8);
 
   // Border right
-  glColor3f(0.0f+m_fIlluminateRightBorder, 0.4f+m_fIlluminateRightBorder, 0.0f+m_fIlluminateRightBorder);
-  glNormal3f(0.0f, 0.0f, -1.0f);
-  glVertex3f(GetRight(), GetTop(), -BORDER_BEVEL);
-  glVertex3f(GetRight(), GetBottom(), -BORDER_BEVEL);
-  glVertex3f(GetRight()-BORDER_WIDTH, GetBottom()-BORDER_WIDTH, -BORDER_BEVEL);
-  glVertex3f(GetRight()-BORDER_WIDTH, GetTop()+BORDER_WIDTH, -BORDER_BEVEL);
-
-  glNormal3f(1.0f, 0.0f, 0.0f);
-  glVertex3f(GetRight(), GetTop(), 0);
-  glVertex3f(GetRight(), GetBottom(), 0);
-  glVertex3f(GetRight(), GetBottom(), -BORDER_BEVEL);
-  glVertex3f(GetRight(), GetTop(), -BORDER_BEVEL);
-  glColor3f(0.0f, 0.4f, 0.0f);
+  glColor3f(0.0f + illuminate_right_border_, 0.4f + illuminate_right_border_,
+            0.0f + illuminate_right_border_);
+  glDrawArrays(GL_QUADS, 20, 8);
 
   // Border bottom
-  glNormal3f(0.0f, 0.0f, -1.0f);
-  glVertex3f(GetLeft(), GetBottom(), -BORDER_BEVEL);
-  glVertex3f(GetLeft()+BORDER_WIDTH, GetBottom()-BORDER_WIDTH, -BORDER_BEVEL);
-  glVertex3f(GetRight()-BORDER_WIDTH, GetBottom()-BORDER_WIDTH, -BORDER_BEVEL);
-  glVertex3f(GetRight(), GetBottom(), -BORDER_BEVEL);
+  glColor3f(0.0f, 0.4f, 0.0f);
+  glDrawArrays(GL_QUADS, 28, 8);
 
-  glNormal3f(0.0f, -1.0f, 0.0f);
-  glVertex3f(GetLeft()+BORDER_WIDTH, GetBottom()-BORDER_WIDTH, -BORDER_BEVEL);
-  glVertex3f(GetLeft()+BORDER_WIDTH, GetBottom()-BORDER_WIDTH, 0);
-  glVertex3f(GetRight()-BORDER_WIDTH, GetBottom()-BORDER_WIDTH, 0);
-  glVertex3f(GetRight()-BORDER_WIDTH, GetBottom()-BORDER_WIDTH, -BORDER_BEVEL);
-  glEnd();
+  glBindVertexArray(0);
 
   // Draw score
-  glPushAttrib(GL_ENABLE_BIT);
   glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
 
   glPushMatrix();
-  glTranslatef(30.0f+DIGIT_WIDTH, GetTop()+20.0f, 0.0f);
-  DrawDigitNumber(m_nLeftScore);
+  glTranslatef(30.0f + kDigitWidth, GetTop() + 20.0f, 0.0f);
+  DrawDigitNumber(left_score_);
   glPopMatrix();
 
   glPushMatrix();
-  glTranslatef(-30.0f, GetTop()+20.0f, 0.0f);
-  DrawDigitNumber(m_nRightScore);
+  glTranslatef(-30.0f, GetTop() + 20.0f, 0.0f);
+  DrawDigitNumber(right_score_);
   glPopMatrix();
 
-  glPopAttrib();
+  glEnable(GL_LIGHTING);
+  glEnable(GL_DEPTH_TEST);
 }
 
-/** Process event.
- * The object receive an event to process.
- * If he has processed this event and it should not be processed by
- * any other object, then it return true.
- *
- * @param nEvent  Type of event (mouse click, keyboard, ...).
- * @param wParam  A value depending of the event type.
- * @param lParam  A value depending of the event type.
- * @return True if the message has been processed.
- */
-bool Board::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
-{
+bool Board::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {
   return false;
 }
 
-// Add points to a player's score.
-void Board::Score(bool bLeftPlayer)
-{
-  int *pnScore;
+void Board::Score(bool is_left_player) {
+  int *score;
 
   // Left or right player?
-  if (bLeftPlayer)
-  {
-    pnScore = &m_nLeftScore;
-    m_fIlluminateLeftBorder = ILLUMINATE_DURATION;
-  }
-  else
-  {
-    pnScore = &m_nRightScore;
-    m_fIlluminateRightBorder = ILLUMINATE_DURATION;
+  if (is_left_player) {
+    score = &left_score_;
+    illuminate_left_border_ = kIlluminate_Duration;
+  } else {
+    score = &right_score_;
+    illuminate_right_border_ = kIlluminate_Duration;
   }
 
   // Update player's score.
-  if (*pnScore < 30)
-    *pnScore += 15;
+  if (*score < 30)
+    *score += 15;
   else
-    *pnScore += 10;
+    *score += 10;
 
   // The player won?
-  if ((m_nLeftScore > 40 || m_nRightScore > 40) &&
-    abs(m_nLeftScore-m_nRightScore) > 10)
-  {
-    m_bIsGameOver = true;
+  if ((left_score_ > 40 || right_score_ > 40) && abs(left_score_ - right_score_) > 10) {
+    is_game_over_ = true;
   }
 }
 
-void Board::DrawDigitNumber(int nNumber)
-{
-  bool  a,b,c,d,e,f,g;
+void Board::DrawDigitNumber(int number) const {
   /*                                                   f
-  __        __   __        __   __   __   __   __   a   e  _
+   __        __   __        __   __   __   __   __   a   e  _
   |  |    |  __|  __| |__| |__  |__     | |__| |__|    g   |_|
   |__|    | |__   __|    |  __| |__|    | |__|  __|  b   d | |
-  c
+                                                       c
   */
-  do
-  {
-    switch (nNumber%10)
-    {
-    case 0:
-      a = true;  b = true;  c = true;  d = true;  e = true;  f = true;  g = false;
-      break;
-    case 1:
-      a = false;  b = false;  c = false;  d = true;  e = true;  f = false;  g = false;
-      break;
-    case 2:
-      a = false;  b = true;  c = true;  d = false;  e = true;  f = true;  g = true;
-      break;
-    case 3:
-      a = false;  b = false;  c = true;  d = true;  e = true;  f = true;  g = true;
-      break;
-    case 4:
-      a = true;  b = false;  c = false;  d = true;  e = true;  f = false;  g = true;
-      break;
-    case 5:
-      a = true;  b = false;  c = true;  d = true;  e = false;  f = true;  g = true;
-      break;
-    case 6:
-      a = true;  b = true;  c = true;  d = true;  e = false;  f = true;  g = true;
-      break;
-    case 7:
-      a = false;  b = false;  c = false;  d = true;  e = true;  f = true;  g = false;
-      break;
-    case 8:
-      a = true;  b = true;  c = true;  d = true;  e = true;  f = true;  g = true;
-      break;
-    case 9:
-      a = true;  b = false;  c = true;  d = true;  e = true;  f = true;  g = true;
-      break;
-    }
+  if (number == 0) {
+    glBindVertexArray(digit_vaos_[0]);
+    glDrawArrays(GL_QUADS, 0, digit_vertex_counts_[0]);
+    glBindVertexArray(0);
+    return;
+  }
 
-    // Draw digital number
-    glBegin(GL_QUADS);
-    if (a)
-    {
-      glVertex2f(0.0f, DIGIT_HEIGHT-DIGIT_INNER_SPACING);
-      glVertex2f(0.0f, DIGIT_HEIGHT/2.0f+DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_BORDER, DIGIT_HEIGHT/2.0f+DIGIT_BORDER/2.0f+DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_BORDER, DIGIT_HEIGHT-DIGIT_BORDER-DIGIT_INNER_SPACING);
-    }
-    if (b)
-    {
-      glVertex2f(0.0f, DIGIT_HEIGHT/2.0f-DIGIT_INNER_SPACING);
-      glVertex2f(0.0f, DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_BORDER, DIGIT_BORDER+DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_BORDER, DIGIT_HEIGHT/2.0f-DIGIT_BORDER/2.0f-DIGIT_INNER_SPACING);
-    }
-    if (c)
-    {
-      glVertex2f(-DIGIT_INNER_SPACING, 0.0f);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_INNER_SPACING, 0.0f);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_INNER_SPACING+DIGIT_BORDER, DIGIT_BORDER);
-      glVertex2f(-DIGIT_INNER_SPACING-DIGIT_BORDER, DIGIT_BORDER);
-    }
-    if (d)
-    {
-      glVertex2f(-DIGIT_WIDTH, DIGIT_HEIGHT/2.0f-DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_BORDER, DIGIT_HEIGHT/2.0f-DIGIT_BORDER/2.0f-DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_BORDER, DIGIT_BORDER+DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_WIDTH, DIGIT_INNER_SPACING);
-    }
-    if (e)
-    {
-      glVertex2f(-DIGIT_WIDTH, DIGIT_HEIGHT-DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_BORDER, DIGIT_HEIGHT-DIGIT_BORDER-DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_BORDER, DIGIT_HEIGHT/2.0f+DIGIT_BORDER/2.0f+DIGIT_INNER_SPACING);
-      glVertex2f(-DIGIT_WIDTH, DIGIT_HEIGHT/2.0f+DIGIT_INNER_SPACING);
-    }
-    if (f)
-    {
-      glVertex2f(-DIGIT_INNER_SPACING, DIGIT_HEIGHT);
-      glVertex2f(-DIGIT_INNER_SPACING-DIGIT_BORDER, DIGIT_HEIGHT-DIGIT_BORDER);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_INNER_SPACING+DIGIT_BORDER, DIGIT_HEIGHT-DIGIT_BORDER);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_INNER_SPACING, DIGIT_HEIGHT);
-    }
-    if (g)
-    {
-      // top
-      glVertex2f(-DIGIT_INNER_SPACING, DIGIT_HEIGHT/2.0f);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_INNER_SPACING, DIGIT_HEIGHT/2.0f);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_BORDER, DIGIT_HEIGHT/2.0f+DIGIT_BORDER/2.0f);
-      glVertex2f(-DIGIT_BORDER, DIGIT_HEIGHT/2.0f+DIGIT_BORDER/2.0f);
-      // bottom
-      glVertex2f(-DIGIT_INNER_SPACING, DIGIT_HEIGHT/2.0f);
-      glVertex2f(-DIGIT_BORDER, DIGIT_HEIGHT/2.0f-DIGIT_BORDER/2.0f);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_BORDER, DIGIT_HEIGHT/2.0f-DIGIT_BORDER/2.0f);
-      glVertex2f(-DIGIT_WIDTH+DIGIT_INNER_SPACING, DIGIT_HEIGHT/2.0f);
-    }
-    glEnd();
-    glTranslatef(DIGIT_WIDTH+DIGIT_SPACING, 0.0f, 0.0f);
-  } while ((nNumber/=10) != 0);
+  do {
+    int digit = number % 10;
+    glBindVertexArray(digit_vaos_[digit]);
+    glDrawArrays(GL_QUADS, 0, digit_vertex_counts_[digit]);
+    glBindVertexArray(0);
+    glTranslatef(kDigitWidth + kDigitSpacing, 0.0f, 0.0f);
+  } while ((number /= 10) != 0);
 }
-

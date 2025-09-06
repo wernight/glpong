@@ -22,19 +22,22 @@
 
 #pragma once
 
+#include <GL/glew.h>
+
+#include <array>
+
 #include "IObject.h"
 
-class Board : public IObject
-{
-public:
-// Constructor
+class Board : public IObject {
+ public:
+  // Constructor
   Board();
+  virtual ~Board();
 
-// Implementation of IObject.
   void Reset();
 
   // Update the object.
-  void Update(float fTime) override;
+  void Update(float dt) override;
 
   // Render the object.
   void Render() const override;
@@ -42,45 +45,33 @@ public:
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
-// Attributes
-  static const float GetTop() {
-    return 48.0f;
-  }
+  static const float GetTop() { return 48.0f; }
+  static const float GetBottom() { return -48.0f; }
+  static const float GetLeft() { return 64.0f; }
+  static const float GetRight() { return -64.0f; }
 
-  static const float GetBottom() {
-    return -48.0f;
-  }
+  static const float GetWidth() { return GetLeft() - GetRight(); }
+  static const float GetHeight() { return GetTop() - GetBottom(); }
 
-  static const float GetLeft() {
-    return 64.0f;
-  }
+  bool IsGameOver() const { return is_game_over_; }
 
-  static const float GetRight() {
-    return -64.0f;
-  }
-
-  static const float GetWidth() {
-    return GetLeft() - GetRight();
-  }
-  static const float GetHeight() {
-    return GetTop() - GetBottom();
-  }
-
-  bool IsGameOver() const {
-    return m_bIsGameOver;
-  }
-
-// Operations
   // Add points to a player's score.
-  void Score(bool bLeftPlayer);
+  void Score(bool left_player);
 
-// Implémentation
-private:
-  static void DrawDigitNumber(int nNumber);
+ private:
+  void DrawDigitNumber(int number) const;
 
-  int m_nLeftScore;
-  int m_nRightScore;
-  float m_fIlluminateLeftBorder;      // Illuminate the left border.
-  float m_fIlluminateRightBorder;      // Illuminate the right border.
-  bool m_bIsGameOver;
+  int left_score_;
+  int right_score_;
+  float illuminate_left_border_;   // Illuminate the left border.
+  float illuminate_right_border_;  // Illuminate the right border.
+  bool is_game_over_;
+
+  GLuint vao_ = 0;
+  GLuint vbo_ = 0;
+
+  static constexpr int kDigits = 10;
+  std::array<GLuint, kDigits> digit_vaos_ = {0};
+  std::array<GLuint, kDigits> digit_vbos_ = {0};
+  std::array<int, kDigits> digit_vertex_counts_ = {0};
 };

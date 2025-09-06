@@ -22,15 +22,17 @@
 
 #pragma once
 
+#include <GL/glew.h>
+
 #include "IObject.h"
 
-class Paddle : public IObject
-{
-public:
-// Constructor
-  Paddle(bool bLeftPaddle);
+class Paddle : public IObject {
+ public:
+  // Constructor
+  Paddle(bool left_paddle);
+  virtual ~Paddle();
 
-// Implementation of IObject.
+  // Implementation of IObject.
   // Update the object.
   void Update(float fTime) override;
 
@@ -40,20 +42,14 @@ public:
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
-// Attributes
-  static const float GetWidth() {
-    return 6.0f;
-  }
+  // Attributes
+  static const float GetWidth() { return 6.0f; }
 
-  static const float GetHeight() {
-    return 20.0f;
-  }
+  static const float GetHeight() { return 20.0f; }
 
-  inline float GetPosition() const {
-    return m_fY;
-  }
+  inline float GetPosition() const { return y_; }
 
-// Operations
+  // Operations
   // Move paddle upward.
   void MoveUp();
 
@@ -66,11 +62,13 @@ public:
   // Illuminate paddle.
   void Illuminate();
 
-// Implementation
-protected:
-  bool  m_bLeftPaddle;
-  float  m_fSpeed,
-      m_fY,
-      m_fIlluminate;
-  GLuint  m_nGLPaddle;
+  // Implementation
+ protected:
+  bool left_paddle_;
+  float speed_;
+  float y_;
+  float illuminate_;
+  GLuint vao_ = 0;
+  GLuint vbo_ = 0;
+  int vertex_count_ = 0;
 };

@@ -20,316 +20,393 @@
  * Web : www.beroux.com
  */
 
-#include "StdAfx.h"
 #include "Ball.h"
 
-constexpr float BALL_SPEED = 110.0f;
-constexpr float BALL_SPEED_INCREASE = 5.0f;
-constexpr float BALL_RADIUS = 2.0f;
-constexpr float BALL_MAX_ANGLE = M_PI/3.0f;  // y = a*x
-constexpr float BALL_MIN_ANGLE = M_PI/7.0f;  // y = a*x
-constexpr float PART_SIZE = 1.7f;
+#include <vector>
 
-Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle, std::shared_ptr<Paddle> right_paddle, GLuint texture)
-  : board_(board)
-  , left_paddle_(left_paddle)
-  , right_paddle_(right_paddle)
-  , texture_(texture)
-{
+#include "StdAfx.h"
+
+constexpr float kBallSpeed = 110.0f;
+constexpr float kBallSpeedIncrease = 5.0f;
+constexpr float kBallRadius = 2.0f;
+constexpr float kBallMaxAngle = M_PI / 3.0f;  // y = a*x
+constexpr float kBallMinAngle = M_PI / 7.0f;  // y = a*x
+constexpr float kPartSize = 1.7f;
+
+namespace {
+struct Vertex {
+  GLfloat position[3];
+  GLfloat normal[3];
+};
+
+struct ParticleVertex {
+  GLfloat position[3];
+  GLfloat texcoord[2];
+};
+
+void generateSphere(std::vector<Vertex> &vertices, float radius, int rings, int sectors) {
+  float const R = 1. / (float)(rings - 1);
+  float const S = 1. / (float)(sectors - 1);
+  int r, s;
+
+  vertices.resize(rings * sectors * 6);
+  auto it = vertices.begin();
+  for (r = 0; r < rings - 1; r++)
+    for (s = 0; s < sectors - 1; s++) {
+      float const y0 = sin(-M_PI_2 + M_PI * r * R);
+      float const x0 = cos(2 * M_PI * s * S) * sin(M_PI * r * R);
+      float const z0 = sin(2 * M_PI * s * S) * sin(M_PI * r * R);
+
+      float const y1 = sin(-M_PI_2 + M_PI * (r + 1) * R);
+      float const x1 = cos(2 * M_PI * s * S) * sin(M_PI * (r + 1) * R);
+      float const z1 = sin(2 * M_PI * s * S) * sin(M_PI * (r + 1) * R);
+
+      float const y2 = sin(-M_PI_2 + M_PI * r * R);
+      float const x2 = cos(2 * M_PI * (s + 1) * S) * sin(M_PI * r * R);
+      float const z2 = sin(2 * M_PI * (s + 1) * S) * sin(M_PI * r * R);
+
+      float const y3 = sin(-M_PI_2 + M_PI * (r + 1) * R);
+      float const x3 = cos(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
+      float const z3 = sin(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
+
+      it->position[0] = x0 * radius;
+      it->position[1] = y0 * radius;
+      it->position[2] = z0 * radius;
+      it->normal[0] = x0;
+      it->normal[1] = y0;
+      it->normal[2] = z0;
+      ++it;
+      it->position[0] = x1 * radius;
+      it->position[1] = y1 * radius;
+      it->position[2] = z1 * radius;
+      it->normal[0] = x1;
+      it->normal[1] = y1;
+      it->normal[2] = z1;
+      ++it;
+      it->position[0] = x2 * radius;
+      it->position[1] = y2 * radius;
+      it->position[2] = z2 * radius;
+      it->normal[0] = x2;
+      it->normal[1] = y2;
+      it->normal[2] = z2;
+      ++it;
+      it->position[0] = x1 * radius;
+      it->position[1] = y1 * radius;
+      it->position[2] = z1 * radius;
+      it->normal[0] = x1;
+      it->normal[1] = y1;
+      it->normal[2] = z1;
+      ++it;
+      it->position[0] = x3 * radius;
+      it->position[1] = y3 * radius;
+      it->position[2] = z3 * radius;
+      it->normal[0] = x3;
+      it->normal[1] = y3;
+      it->normal[2] = z3;
+      ++it;
+      it->position[0] = x2 * radius;
+      it->position[1] = y2 * radius;
+      it->position[2] = z2 * radius;
+      it->normal[0] = x2;
+      it->normal[1] = y2;
+      it->normal[2] = z2;
+      ++it;
+    }
+}
+}  // namespace
+
+Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
+           std::shared_ptr<Paddle> right_paddle, GLuint texture)
+    : board_(board), left_paddle_(left_paddle), right_paddle_(right_paddle), texture_(texture) {
   // Create a new ball.
-  m_vBallPosition.y = 0.0f;
-  NewBall(m_rand.RandomInt()%2 == 0);
+  ball_position_.y = 0.0f;
+  NewBall(rand_.RandomInt() % 2 == 0);
 
   // Init particles.
-  for (int i=0; i<sizeof(m_particles)/sizeof(m_particles[0]); ++i)  // i Through All The Particles
-  {
-    m_particles[i].life = 1.0f;
-    m_particles[i].fade = (float) m_rand.RandomRange(3.0f, 28.0f);  // Random Fade Value
-    m_particles[i].x = m_vBallSpeed.x;
-    m_particles[i].y = m_vBallSpeed.y;
-    m_particles[i].z = -BALL_RADIUS;
+  for (auto &part : particles_) {
+    part.life = 1.0f;
+    part.fade = (float)rand_.RandomRange(3.0f, 28.0f);  // Random Fade Value
+    part.x = ball_speed_.x;
+    part.y = ball_speed_.y;
+    part.z = -kBallRadius;
   }
-  
-  // Initiliaz random number generator.
-  m_rand.Randomize();
 
-  // Ball
-  m_nList = glGenLists(1);
-  glNewList(m_nList, GL_COMPILE);
-    glColor3f(0.0f, 1.0f, 0.0f);
-    GLUquadricObj *pQuadObj = gluNewQuadric();
-    gluQuadricNormals(pQuadObj, GLU_SMOOTH);
-    gluSphere(pQuadObj, BALL_RADIUS, 7, 5);
-    gluDeleteQuadric(pQuadObj);
-  glEndList();
+  // Initiliaz random number generator.
+  rand_.Randomize();
+
+  // Ball sphere
+  std::vector<Vertex> vertices;
+  generateSphere(vertices, kBallRadius, 7, 5);
+  sphere_vertex_count_ = vertices.size();
+
+  glGenVertexArrays(1, &sphere_vao_);
+  glGenBuffers(1, &sphere_vbo_);
+  glBindVertexArray(sphere_vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, sphere_vbo_);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, position));
+  glEnableClientState(GL_NORMAL_ARRAY);
+  glNormalPointer(GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, normal));
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  // Particles
+  glGenVertexArrays(1, &particles_vao_);
+  glGenBuffers(1, &particles_vbo_);
+  glBindVertexArray(particles_vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, particles_vbo_);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(particles_) * 6 * sizeof(ParticleVertex), nullptr,
+               GL_DYNAMIC_DRAW);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void *)offsetof(ParticleVertex, position));
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  glTexCoordPointer(2, GL_FLOAT, sizeof(ParticleVertex),
+                    (void *)offsetof(ParticleVertex, texcoord));
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 }
 
-Ball::~Ball()
-{
+Ball::~Ball() {
+  if (sphere_vao_) glDeleteVertexArrays(1, &sphere_vao_);
+  if (sphere_vbo_) glDeleteBuffers(1, &sphere_vbo_);
+  if (particles_vao_) glDeleteVertexArrays(1, &particles_vao_);
+  if (particles_vbo_) glDeleteBuffers(1, &particles_vbo_);
 }
 
 /** Update the object.
  * @param fTime    Time elapsed between two updates.
  */
-void Ball::Update(float fTime)
-{
-  Vector2D  vNewBallPos(m_vBallPosition + m_vBallSpeed*fTime);
-  double    dAngle,
-        dSpeed;
+void Ball::Update(float fTime) {
+  Vector2D new_ball_pos(ball_position_ + ball_speed_ * fTime);
+  double dAngle, dSpeed;
   int i;
 
   // Bounce top/bottom
-  if (vNewBallPos.y+BALL_RADIUS > Board::GetTop())
-  {
-    m_vBallSpeed.y = -m_vBallSpeed.y;
-    vNewBallPos.y = 2.0f*(Board::GetTop()-BALL_RADIUS) - vNewBallPos.y;
-  }
-  else if (vNewBallPos.y-BALL_RADIUS < Board::GetBottom())
-  {
-    m_vBallSpeed.y = -m_vBallSpeed.y;
-    vNewBallPos.y = 2.0f*(Board::GetBottom()+BALL_RADIUS) - vNewBallPos.y;
+  if (new_ball_pos.y + kBallRadius > Board::GetTop()) {
+    ball_speed_.y = -ball_speed_.y;
+    new_ball_pos.y = 2.0f * (Board::GetTop() - kBallRadius) - new_ball_pos.y;
+  } else if (new_ball_pos.y - kBallRadius < Board::GetBottom()) {
+    ball_speed_.y = -ball_speed_.y;
+    new_ball_pos.y = 2.0f * (Board::GetBottom() + kBallRadius) - new_ball_pos.y;
   }
 
   // Left paddle collision detection.
-  if (vNewBallPos.x+BALL_RADIUS > Board::GetLeft()-Paddle::GetWidth())
-  {
+  if (new_ball_pos.x + kBallRadius > Board::GetLeft() - Paddle::GetWidth()) {
     // y = a*x + b
-    float  a = m_vBallSpeed.y / m_vBallSpeed.x,
-        b = m_vBallPosition.y - a*m_vBallPosition.x,
-        y;
+    float a = ball_speed_.y / ball_speed_.x, b = ball_position_.y - a * ball_position_.x, y;
 
     // Bounce on paddle?
-    if (m_vBallPosition.x+BALL_RADIUS <= Board::GetLeft()-Paddle::GetWidth() &&
-      (y = a*(Board::GetLeft()-Paddle::GetWidth()-BALL_RADIUS) + b)-BALL_RADIUS <= left_paddle_->GetPosition()+Paddle::GetHeight()*0.5f &&
-      y+BALL_RADIUS >= left_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)
-    {
+    if (ball_position_.x + kBallRadius <= Board::GetLeft() - Paddle::GetWidth() &&
+        (y = a * (Board::GetLeft() - Paddle::GetWidth() - kBallRadius) + b) - kBallRadius <=
+            left_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
+        y + kBallRadius >= left_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f) {
       // Illuminate.
       left_paddle_->Illuminate();
       // Bounce.
-      vNewBallPos.x = 2.0f*(Board::GetLeft()-Paddle::GetWidth()-BALL_RADIUS) - vNewBallPos.x;
+      new_ball_pos.x =
+          2.0f * (Board::GetLeft() - Paddle::GetWidth() - kBallRadius) - new_ball_pos.x;
       // Bouce angle.
-      dAngle = (left_paddle_->GetPosition() - vNewBallPos.y) * M_PI/4.0f / (Paddle::GetHeight()/2.0f) + M_PI;
+      dAngle = (left_paddle_->GetPosition() - new_ball_pos.y) * M_PI / 4.0f /
+                   (Paddle::GetHeight() / 2.0f) +
+               M_PI;
 
       // Increase speed
-      dSpeed = m_vBallSpeed.Norm() + BALL_SPEED_INCREASE;
-      m_vBallSpeed.x = float(cos(dAngle)*dSpeed);
-      m_vBallSpeed.y = float(sin(dAngle)*dSpeed);
+      dSpeed = ball_speed_.Norm() + kBallSpeedIncrease;
+      ball_speed_.x = float(cos(dAngle) * dSpeed);
+      ball_speed_.y = float(sin(dAngle) * dSpeed);
     }
-/*    // Bounce on corners?
-    else if (HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetLeft()-Paddle::GetWidth(), left_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) ||
-         HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetLeft()-Paddle::GetWidth(), left_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)))
-    { }*/
+    /*    // Bounce on corners?
+        else if (HitPoint(ball_position_, new_ball_pos, ball_speed_,
+       Vector2D(Board::GetLeft()-Paddle::GetWidth(),
+       left_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) || HitPoint(ball_position_,
+       new_ball_pos, ball_speed_, Vector2D(Board::GetLeft()-Paddle::GetWidth(),
+       left_paddle_->GetPosition()-Paddle::GetHeight()*0.5f))) { }*/
     // Score?
-    else if (vNewBallPos.x+BALL_RADIUS > Board::GetLeft())
-    {
+    else if (new_ball_pos.x + kBallRadius > Board::GetLeft()) {
       board_->Score(true);
       NewBall(true);
-      vNewBallPos = m_vBallPosition;
+      new_ball_pos = ball_position_;
     }
   }
   // Right paddle collision detection.
-  else if (vNewBallPos.x-BALL_RADIUS < Board::GetRight()+Paddle::GetWidth())
-  {
+  else if (new_ball_pos.x - kBallRadius < Board::GetRight() + Paddle::GetWidth()) {
     // y = a*x + b
-    float  a = m_vBallSpeed.y / m_vBallSpeed.x,
-        b = m_vBallPosition.y - a*m_vBallPosition.x,
-        y;
+    float a = ball_speed_.y / ball_speed_.x, b = ball_position_.y - a * ball_position_.x, y;
 
     // Bounce on paddle?
-    if (m_vBallPosition.x-BALL_RADIUS >= Board::GetRight()+Paddle::GetWidth() &&
-      (y = a*(Board::GetRight()+Paddle::GetWidth()+BALL_RADIUS) + b)-BALL_RADIUS <= right_paddle_->GetPosition()+Paddle::GetHeight()*0.5f &&
-      y+BALL_RADIUS >= right_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)
-    {
+    if (ball_position_.x - kBallRadius >= Board::GetRight() + Paddle::GetWidth() &&
+        (y = a * (Board::GetRight() + Paddle::GetWidth() + kBallRadius) + b) - kBallRadius <=
+            right_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
+        y + kBallRadius >= right_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f) {
       // Illuminate.
       right_paddle_->Illuminate();
       // Bounce.
-      vNewBallPos.x = 2.0f*(Board::GetRight()+Paddle::GetWidth()+BALL_RADIUS) - vNewBallPos.x;
+      new_ball_pos.x =
+          2.0f * (Board::GetRight() + Paddle::GetWidth() + kBallRadius) - new_ball_pos.x;
       // Bouce angle.
-      dAngle = (vNewBallPos.y - right_paddle_->GetPosition()) * M_PI/4.0f / (Paddle::GetHeight()/2.0f);
+      dAngle = (new_ball_pos.y - right_paddle_->GetPosition()) * M_PI / 4.0f /
+               (Paddle::GetHeight() / 2.0f);
 
       // Increase speed
-      dSpeed = m_vBallSpeed.Norm() + BALL_SPEED_INCREASE;
-      m_vBallSpeed.x = float(cos(dAngle)*dSpeed);
-      m_vBallSpeed.y = float(sin(dAngle)*dSpeed);
+      dSpeed = ball_speed_.Norm() + kBallSpeedIncrease;
+      ball_speed_.x = float(cos(dAngle) * dSpeed);
+      ball_speed_.y = float(sin(dAngle) * dSpeed);
     }
-/*    // Bounce on corners?
-    else if (HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetRight()+Paddle::GetWidth(), right_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) ||
-         HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetRight()+Paddle::GetWidth(), right_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)))
-    { }*/
+    /*    // Bounce on corners?
+        else if (HitPoint(ball_position_, new_ball_pos, ball_speed_,
+       Vector2D(Board::GetRight()+Paddle::GetWidth(),
+       right_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) || HitPoint(ball_position_,
+       new_ball_pos, ball_speed_, Vector2D(Board::GetRight()+Paddle::GetWidth(),
+       right_paddle_->GetPosition()-Paddle::GetHeight()*0.5f))) { }*/
     // Score?
-    else if (vNewBallPos.x-BALL_RADIUS < Board::GetRight())
-    {
+    else if (new_ball_pos.x - kBallRadius < Board::GetRight()) {
       board_->Score(false);
       NewBall(false);
-      vNewBallPos = m_vBallPosition;
+      new_ball_pos = ball_position_;
     }
   }
 
   // Ball's position.
-  m_vBallPosition = vNewBallPos;
+  ball_position_ = new_ball_pos;
 
   // Particles.
-  for (i=0; i<sizeof(m_particles)/sizeof(m_particles[0]); ++i)// i Through All The Particles
-  {
-    // Update
-    m_particles[i].life -= m_particles[i].fade*fTime;  // Reduce Particles Life By 'Fade'
+  for (auto &part : particles_) {
+    // Reduce Particles Life By 'Fade'
+    part.life -= part.fade * fTime;
 
-    // Regenerate
-    if (m_particles[i].life < 0.0f)        // If Particle Is Burned Out
-    {
-      m_particles[i].life = 1.0f;
-      m_particles[i].fade = (float) m_rand.RandomRange(3.0f, 28.0f);  // Random Fade Value
-      m_particles[i].x = m_vBallPosition.x + (float)m_rand.RandomRange(-BALL_RADIUS*0.5f, BALL_RADIUS*0.5f);
-      m_particles[i].y = m_vBallPosition.y + (float)m_rand.RandomRange(-BALL_RADIUS*0.5f, BALL_RADIUS*0.5f);
-      m_particles[i].z = -BALL_RADIUS + (float)m_rand.RandomRange(-BALL_RADIUS*0.5f, BALL_RADIUS*0.5f);
-    }
+    // Regenerate if Particle is Burned Out
+    if (part.life >= 0.0f) continue;
+
+    part.life = 1.0f;
+    part.fade = (float)rand_.RandomRange(3.0f, 28.0f);  // Random Fade Value
+    part.x = ball_position_.x + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
+    part.y = ball_position_.y + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
+    part.z = -kBallRadius + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
   }
 }
 
-/** Render the object.
- */
-void Ball::Render() const
-{
-  float       fModelView[16];
-  Vector3D    vCenter,
-          vRight,
-          vUp,
-          vVertex;
-  float      ps;
-  int  i;
-
+void Ball::Render() const {
   // Ball
   glPushMatrix();
-  glTranslatef(m_vBallPosition.x, m_vBallPosition.y, -BALL_RADIUS);
-  glCallList(m_nList);
+  glTranslatef(ball_position_.x, ball_position_.y, -kBallRadius);
+  glColor3f(0.0f, 1.0f, 0.0f);
+  glBindVertexArray(sphere_vao_);
+  glDrawArrays(GL_TRIANGLES, 0, sphere_vertex_count_);
+  glBindVertexArray(0);
   glPopMatrix();
 
-  // Billboarding
-  glGetFloatv(GL_MODELVIEW_MATRIX, fModelView);
-
-  vRight.x = fModelView[0];
-  vRight.y = fModelView[4];
-  vRight.z = fModelView[8];
-
-  vUp.x = fModelView[1];
-  vUp.y = fModelView[5];
-  vUp.z = fModelView[9];
-
   // Particules
-  glColor3f(0.0f, 1.0f, 0.0f);
-  if (texture_ != 0)
-    glBindTexture(GL_TEXTURE_2D, texture_);
-  glPushAttrib(GL_ENABLE_BIT);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glBegin(GL_QUADS);                  // Build Quad From A Triangle Strip
-      for (i=0; i<sizeof(m_particles)/sizeof(m_particles[0]); ++i)          // i Through All The Particles
-      {
-        ps = m_particles[i].life*PART_SIZE;
-        vCenter.x = m_particles[i].x;
-        vCenter.y = m_particles[i].y;
-        vCenter.z = m_particles[i].z;
+  if (texture_ != 0) glBindTexture(GL_TEXTURE_2D, texture_);
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glDisable(GL_LIGHTING);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_CULL_FACE);
 
-        // Draw The Particle Using Our RGB Values, Fade The Particle Based On It's Life
-        glTexCoord2d(0,1); glVertex3fv(vCenter - (vRight + vUp) * ps); // Top Left
-        glTexCoord2d(1,1); glVertex3fv(vCenter + (vRight - vUp) * ps); // Top Right
-        glTexCoord2d(1,0); glVertex3fv(vCenter + (vRight + vUp) * ps); // Bottom Right
-        glTexCoord2d(0,0); glVertex3fv(vCenter - (vRight - vUp) * ps); // Bottom Left
-      }
-    glEnd();                      // Done Building Triangle Strip
-  glPopAttrib();
-}
+  std::vector<ParticleVertex> vertices;
+  vertices.reserve(sizeof(particles_) / sizeof(particles_[0]) * 6);
 
-/** Process event.
- * The object receive an event to process.
- * If he has processed this event and it should not be processed by
- * any other object, then it return true.
- *
- * @param nEvent  Type of event (mouse click, keyboard, ...).
- * @param wParam  A value depending of the event type.
- * @param lParam  A value depending of the event type.
- * @return True if the message has been processed.
- */
-bool Ball::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
-{
-  return false;
-}
+  float model_view[16];
+  glGetFloatv(GL_MODELVIEW_MATRIX, model_view);
+  Vector3D right(model_view[0], model_view[4], model_view[8]);
+  Vector3D up(model_view[1], model_view[5], model_view[9]);
 
-// Create a new ball aimed toward left or right player.
-void Ball::NewBall(bool bGoToLeft)
-{
-  float fAngle;
+  for (auto &part : particles_) {
+    float ps = part.life * kPartSize;
+    Vector3D center(part.x, part.y, part.z);
 
-  // Selects a random angle.
-  do
-    fAngle = (float)m_rand.RandomRange(-BALL_MAX_ANGLE, +BALL_MAX_ANGLE);
-  while (fabs(fAngle) < BALL_MIN_ANGLE);
+    Vector3D tl = center - (right + up) * ps;
+    Vector3D tr = center + (right - up) * ps;
+    Vector3D br = center + (right + up) * ps;
+    Vector3D bl = center - (right - up) * ps;
 
-  if (bGoToLeft)
-  {
-    fAngle += float(M_PI);
-    m_vBallPosition.x = Board::GetLeft()-Paddle::GetWidth();
+    vertices.push_back({{tl.x, tl.y, tl.z}, {0, 1}});
+    vertices.push_back({{br.x, br.y, br.z}, {1, 0}});
+    vertices.push_back({{tr.x, tr.y, tr.z}, {1, 1}});
+    vertices.push_back({{tl.x, tl.y, tl.z}, {0, 1}});
+    vertices.push_back({{bl.x, bl.y, bl.z}, {0, 0}});
+    vertices.push_back({{br.x, br.y, br.z}, {1, 0}});
   }
-  else
-    m_vBallPosition.x = Board::GetRight()+Paddle::GetWidth();
-  m_vBallSpeed.x = (float)cos(fAngle)*BALL_SPEED;
-  m_vBallSpeed.y = (float)sin(fAngle)*BALL_SPEED;
+
+  glColor3f(0.0f, 1.0f, 0.0f);
+  glBindVertexArray(particles_vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, particles_vbo_);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(ParticleVertex), vertices.data());
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_BLEND);
+  glEnable(GL_LIGHTING);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
 }
 
-/** Detects if the ball collides with a point A.
- * @param vPos    Current position of the ball.
- * @param vSpeed  Speed of the ball that will be updated only if the ball collides.
- * @param ptA    Position of the point A.
- * @return If colliside returns true and update speed vector, else returns false.
- */
-inline bool Ball::HitPoint(Vector2D &vOldPos, Vector2D &vNewPos, Vector2D &vSpeed, Vector2D &ptA)
-{
+bool Ball::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) { return false; }
+
+void Ball::NewBall(bool bGoToLeft) {
+  // Selects a random angle.
+  float angle;
+  do angle = (float)rand_.RandomRange(-kBallMaxAngle, +kBallMaxAngle);
+  while (fabs(angle) < kBallMinAngle);
+
+  if (bGoToLeft) {
+    angle += float(M_PI);
+    ball_position_.x = Board::GetLeft() - Paddle::GetWidth();
+  } else
+    ball_position_.x = Board::GetRight() + Paddle::GetWidth();
+  ball_speed_.x = (float)cos(angle) * kBallSpeed;
+  ball_speed_.y = (float)sin(angle) * kBallSpeed;
+}
+
+inline bool Ball::HitPoint(Vector2D &old_pos, Vector2D &new_pos, Vector2D &speed, Vector2D &a_pos) {
   // Position where distance from line y=a*x+b to the point A is the shortest.
-  float  a = vSpeed.y / vSpeed.x,
-      b = vOldPos.y - a*vOldPos.x,
-      t0 = -a*a*(ptA.x*ptA.x - BALL_RADIUS*BALL_RADIUS) - 2.0f*a*(b-ptA.y)*ptA.x - b*b + 2.0f*b*ptA.y - ptA.y*ptA.y + BALL_RADIUS*BALL_RADIUS;
+  float a = speed.y / speed.x;
+  float b = old_pos.y - a * old_pos.x;
+  float t0 = -a * a * (a_pos.x * a_pos.x - kBallRadius * kBallRadius) -
+             2.0f * a * (b - a_pos.y) * a_pos.x - b * b + 2.0f * b * a_pos.y - a_pos.y * a_pos.y +
+             kBallRadius * kBallRadius;
   // Check if hit.
-  if (t0 < 0)
-    return false;
+  if (t0 < 0) return false;
   // Find hit position.
-  float  t1 = sqrt(t0),
-      t2 = -a*(b-ptA.y) + ptA.x,
-      t3 = a*a + 1,
-      x1 = (+t1 + t2)/t3,
-      x2 = (-t1 + t2)/t3,
-      x;
+  float t1 = sqrt(t0), t2 = -a * (b - a_pos.y) + a_pos.x, t3 = a * a + 1, x1 = (+t1 + t2) / t3,
+        x2 = (-t1 + t2) / t3, x;
   // Hit position is one of the two x coordiantes.
-  if (fabs(vOldPos.x - x1) < fabs(vOldPos.x - x2))
+  if (fabs(old_pos.x - x1) < fabs(old_pos.x - x2))
     x = x1;
   else
     x = x2;
-  // Is hit position is between vOldPos and vNewPos?
-  if (!(vOldPos.x <= x && x <= vNewPos.x ||
-      vNewPos.x <= x && x <= vOldPos.x))
-    return false;
+  // Is hit position is between old_pos and new_pos?
+  if (!(old_pos.x <= x && x <= new_pos.x || new_pos.x <= x && x <= old_pos.x)) return false;
 
   // The shortest vector from A to the line defined by y=a*x+b.
-  Vector2D vect(x - ptA.x, a*x+b - ptA.y);
+  Vector2D vect(x - a_pos.x, a * x + b - a_pos.y);
 
   // Update speed vector.
-  vSpeed = vect * ((vSpeed.Norm()+BALL_SPEED_INCREASE) / vect.Norm());
+  speed = vect * ((speed.Norm() + kBallSpeedIncrease) / vect.Norm());
   // Update position.
   //! TODO
-  vNewPos = vOldPos; // Temporary position version that gives bad results on slow machines.
-/*
-R is the new direction vector
-I is the old direction vector before the collision
-N is the Normal at the collision point
+  new_pos = old_pos;
+  // Temporary position version that gives bad results on slow machines.
+  /*
+  R is the new direction vector
+  I is the old direction vector before the collision
+  N is the Normal at the collision point
 
-The new vector R is calculated as follows:
+  The new vector R is calculated as follows:
 
-R= 2*(-I dot N)*N + I
+  R= 2*(-I dot N)*N + I
 
-The restriction is that the I and N vectors have to be unit vectors. The velocity vector as used in our examples represents speed and direction. Therefore it can not be plugged into the equation in the place of I, without any transformation. The speed has to be extracted. The speed for such a velocity vector is extracted finding the magnitude of the vector. Once the magnitude is found, the vector can be transformed to a unit vector and plugged into the equation giving the reflection vector R. R shows us now the direction, of the reflected ray, but in order to be used as a velocity vector it must also incorporate the speed. Therefore it gets, multiplied with the magnitude of the original ray, thus resulting in the correct velocity vector.
-*/
+  The restriction is that the I and N vectors have to be unit vectors. The velocity vector as used
+  in our examples represents speed and direction. Therefore it can not be plugged into the equation
+  in the place of I, without any transformation. The speed has to be extracted. The speed for such a
+  velocity vector is extracted finding the magnitude of the vector. Once the magnitude is found, the
+  vector can be transformed to a unit vector and plugged into the equation giving the reflection
+  vector R. R shows us now the direction, of the reflected ray, but in order to be used as a
+  velocity vector it must also incorporate the speed. Therefore it gets, multiplied with the
+  magnitude of the original ray, thus resulting in the correct velocity vector.
+  */
   return true;
 }
-

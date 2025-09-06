@@ -24,36 +24,36 @@
 
 #pragma once
 
+#include <GL/glew.h>
+
 #include <memory>
 
-#include "IObject.h"
 #include "Board.h"
+#include "IObject.h"
 #include "Paddle.h"
-#include "Vector.h"
 #include "RandomMT.h"
+#include "Vector.h"
 
-// Structures
-struct Particle            // Create A Structure For Particle
-{
-//  bool  active;          // Active (Yes/No)
-  float  life;          // life
-  float  fade;          // Fade Speed
-  float  x;            // X Position
-  float  y;            // Y Position
-  float  z;            // Z Position
-  float  color[4];        // RGBA Color - A = life
-};                  // Particles Structure
+// Create A Structure For Particle
+struct Particle {
+  float life;      // life
+  float fade;      // Fade Speed
+  float x;         // X Position
+  float y;         // Y Position
+  float z;         // Z Position
+  float color[4];  // RGBA Color - A = life
+};
 
-class Ball : public IObject
-{
-// Constructor
-public:
-  Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle, std::shared_ptr<Paddle> right_paddle, GLuint texture);
+class Ball : public IObject {
+  // Constructor
+ public:
+  Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
+       std::shared_ptr<Paddle> right_paddle, GLuint texture);
   virtual ~Ball();
 
-// Implementation of IObject.
+  // Implementation of IObject.
   // Update the object.
-  void Update(float fTime) override;
+  void Update(float dt) override;
 
   // Render the object.
   void Render() const override;
@@ -61,34 +61,34 @@ public:
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
-// Attributes
+  // Attributes
   // Current ball's location.
-  inline Vector2D GetPosition()
-  {
-    return m_vBallPosition;
-  }
+  inline Vector2D GetPosition() { return ball_position_; }
 
   // Current ball's velocity.
-  inline Vector2D GetSpeed()
-  {
-    return m_vBallSpeed;
-  }
+  inline Vector2D GetSpeed() { return ball_speed_; }
 
-// Implementation
-private:
+  // Implementation
+ private:
   // Create a new ball aimed toward left or right player.
-  void NewBall(bool bGoToLeft);
+  void NewBall(bool go_to_left);
 
   // Detects if the ball collide with a point A.
-  inline bool HitPoint(Vector2D &vOldPos, Vector2D &vNewPos, Vector2D &vSpeed, Vector2D &ptA);
+  inline bool HitPoint(Vector2D &old_pos, Vector2D &new_pos, Vector2D &speed, Vector2D &a_pos);
 
   std::shared_ptr<Board> board_;
   std::shared_ptr<Paddle> left_paddle_;
   std::shared_ptr<Paddle> right_paddle_;
   GLuint texture_;
-  Vector2D m_vBallPosition;  // Ball's position.
-  Vector2D m_vBallSpeed;    // Ball's speed.
-  Particle  m_particles[50];  // Particles
-  GLuint m_nList;
-  RandomMT m_rand;
+  Vector2D ball_position_;  // Ball's position.
+  Vector2D ball_speed_;     // Ball's speed.
+  Particle particles_[50];  // Particles
+  RandomMT rand_;
+
+  GLuint sphere_vao_ = 0;
+  GLuint sphere_vbo_ = 0;
+  int sphere_vertex_count_ = 0;
+
+  GLuint particles_vao_ = 0;
+  GLuint particles_vbo_ = 0;
 };

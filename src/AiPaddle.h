@@ -22,26 +22,26 @@
 
 #pragma once
 
-#include "Paddle.h"
-#include "Ball.h"
 #include <memory>
 
-class AiPaddle : public Paddle
-{
-public:
-// Constructor
+#include "Ball.h"
+#include "Paddle.h"
+
+class AiPaddle : public Paddle {
+ public:
+  // Constructor
   AiPaddle(bool is_left_paddel);
 
   void TrackBall(std::shared_ptr<Ball> ball);
 
-// Overrides
+  // Overrides
   // Update the object.
   void Update(float fTime) override;
 
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
-// Implementation
-private:
+  // Implementation
+ private:
   std::shared_ptr<Ball> ball_;
 };

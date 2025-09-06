@@ -7,6 +7,7 @@ RUN set -x \
         build-essential \
         cmake \
         curl \
+        libglew-dev \
         libglu1-mesa-dev \
         libsdl2-dev \
         libsdl2-image-dev \

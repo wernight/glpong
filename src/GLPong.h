@@ -22,15 +22,15 @@
 
 #pragma once
 
-#include "StdAfx.h"
-#include "SceneManager.h"
-#include "Board.h"
-#include "Ball.h"
-#include "Firework.h"
 #include <memory>
 
-class GLPong
-{
+#include "Ball.h"
+#include "Board.h"
+#include "Firework.h"
+#include "SceneManager.h"
+#include "StdAfx.h"
+
+class GLPong {
  public:
   GLPong();
   ~GLPong();
@@ -53,8 +53,8 @@ class GLPong
   SDL_GLContext gl_context_;
   GLuint particle_texture_;
   GLuint star_texture_;
-  bool game_is_still_running_ = true;    // main loop variable
-  bool is_active_ = true;  // whether or not the window is active
+  bool game_is_still_running_ = true;  // main loop variable
+  bool is_active_ = true;              // whether or not the window is active
   Uint32 prev_ticks_;
   Uint32 last_draw_ticks_;
 };

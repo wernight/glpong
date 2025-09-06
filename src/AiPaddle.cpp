@@ -20,84 +20,52 @@
  * Web : www.beroux.com
  */
 
-#include "StdAfx.h"
 #include "AiPaddle.h"
+
 #include "Board.h"
+#include "StdAfx.h"
 
 // Constructor
-AiPaddle::AiPaddle(bool is_left_paddel) : Paddle(is_left_paddel)
-{
-}
+AiPaddle::AiPaddle(bool is_left_paddel) : Paddle(is_left_paddel) {}
 
-void AiPaddle::TrackBall(std::shared_ptr<Ball> ball)
-{
-  ball_ = ball;
-}
+void AiPaddle::TrackBall(std::shared_ptr<Ball> ball) { ball_ = ball; }
 
-/** Initialize the object.
- * Once OpenGL ready the initialize function of each object is called.
- * In this function object should initialize their OpenGL related data
- * and prepare to render.
- *
- * @return True if initialize successful and ready to update/render.
- */
-/*bool AiPaddle::Initialize()
-{
-  return true;
-}*/
-
-/** Update the object.
- * @param fTime    Time elapsed between two updates.
- */
-void AiPaddle::Update(float fTime)
-{
-  static float  fTotalTime = 0.0f;
-  Vector2D    vBallPos;
-  float      fBallDist,
-          fRandom;
+void AiPaddle::Update(float dt) {
+  static float total_time = 0.0f;
+  Vector2D ball_pos;
+  float ball_distance;
+  float rnd;
 
   // Update total time elapsed.
-  fTotalTime += fTime;
+  total_time += dt;
 
   // Current ball's position.
-  vBallPos = ball_->GetPosition();
+  ball_pos = ball_->GetPosition();
 
   // Distance of the ball.
-  if (m_bLeftPaddle)
-    fBallDist = Board::GetLeft() - vBallPos.x;
+  if (left_paddle_)
+    ball_distance = Board::GetLeft() - ball_pos.x;
   else
-    fBallDist = vBallPos.x - Board::GetRight();
+    ball_distance = ball_pos.x - Board::GetRight();
 
   // Approximation of ball's position.
-  fRandom = 0.5f*Paddle::GetHeight()*cos(fTotalTime*6.0f);
+  rnd = 0.5f * Paddle::GetHeight() * cos(total_time * 6.0f);
 
   // Try to get at same height.
-  if (fBallDist > 0.75f*Board::GetWidth())
-    Stop(); // Don't move when ball is too far away.
-  else if (m_fY < vBallPos.y-0.2f*Paddle::GetHeight()+fRandom)
+  if (ball_distance > 0.75f * Board::GetWidth())
+    Stop();  // Don't move when ball is too far away.
+  else if (y_ < ball_pos.y - 0.2f * Paddle::GetHeight() + rnd)
     MoveUp();
-  else if (m_fY > vBallPos.y+0.2f*Paddle::GetHeight()+fRandom)
+  else if (y_ > ball_pos.y + 0.2f * Paddle::GetHeight() + rnd)
     MoveDown();
   else
     Stop();
 
   // Update the normal paddle.
-  Paddle::Update(fTime);
+  Paddle::Update(dt);
 }
 
-/** Process event.
- * The object receive an event to process.
- * If he has processed this event and it should not be processed by
- * any other object, then it return true.
- *
- * @param nEvent  Type of event (mouse click, keyboard, ...).
- * @param wParam  A value depending of the event type.
- * @param lParam  A value depending of the event type.
- * @return True if the message has been processed.
- */
-bool AiPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
-{
+bool AiPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {
   // Don't process events, so the player can NOT control the paddle.
   return false;
 }
-

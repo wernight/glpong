@@ -17,34 +17,34 @@
 #pragma once
 
 #include <memory>
-
-#include "IObject.h"
 #include <vector>
 
-class SceneManager : public IObject
-{
-// Constructors
-public:
+#include "IObject.h"
+#include "StdAfx.h"
+
+class SceneManager : public IObject {
+  // Constructors
+ public:
   SceneManager();
   virtual ~SceneManager();
 
-// Attributes
+  // Attributes
 
-// Operations
+  // Operations
   // Add object to the list.
   void AddObject(std::shared_ptr<IObject> object);
   void RemoveObject(std::shared_ptr<IObject> object);
 
   // Asks objects to update their content.
-  virtual void  Update(float fTime) override;
+  virtual void Update(float dt) override;
 
   // Asks objects to render.
-  virtual void  Render() const override;
+  virtual void Render() const override;
 
   // Asks objects to process an event.
-  virtual bool  ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam) override;
+  virtual bool ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam) override;
 
-// Implementation
-private:
+  // Implementation
+ private:
   std::vector<std::shared_ptr<IObject>> objects_;
 };
