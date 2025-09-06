@@ -28,8 +28,11 @@
 
 // GLPong.cpp : Defines the entry point for the application.
 //
-
 #include "GLPong.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
 
 #include <SDL2/SDL.h>
 
@@ -41,6 +44,7 @@
 
 #include "AiPaddle.h"
 #include "Paddle.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -55,10 +59,14 @@ static std::filesystem::path GetResourcePath(const std::string& relative) {
   return std::filesystem::path(appdir) / relative;
 }
 
-static bool UserInputBoolean() {
+static bool UserInputBoolean(bool default_value) {
+#ifdef __EMSCRIPTEN__
+  return default_value;
+#else
   std::string input;
   std::cin >> input;
   return !input.empty() && tolower(input[0]) == 'y';
+#endif
 }
 
 // Load Bitmaps And Convert To Textures
@@ -115,14 +123,14 @@ GLPong::GLPong() {
 
   // Full-screen?
   std::cout << "Full-screen mode [Y/N]?";
-  if (UserInputBoolean()) {
+  if (UserInputBoolean(false)) {
     videoFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;  // Enable full-screen mode
     SDL_ShowCursor(SDL_DISABLE);
   }
 
   // Versus AI?
   std::cout << "Play against AI [Y/N]?";
-  bool vs_ai = UserInputBoolean();
+  bool vs_ai = UserInputBoolean(true);
 
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -131,8 +139,8 @@ GLPong::GLPong() {
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
-  constexpr int kWidth = 640;
-  constexpr int kHeight = 480;
+  constexpr int kWidth = 800;
+  constexpr int kHeight = 600;
 
   // Get a SDL surface
   sdl_window_ = SDL_CreateWindow("GLPong", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, kWidth,
@@ -161,6 +169,7 @@ GLPong::GLPong() {
   InitGL(vs_ai);
 
   // resize the initial window
+  SDL_SetWindowSize(sdl_window_, kWidth, kHeight);
   glViewport(0, 0, kWidth, kHeight);
 }
 
@@ -253,6 +262,10 @@ void GLPong::Draw() {
 bool GLPong::Run() {
   // Main loop
   last_draw_ticks_ = prev_ticks_ = SDL_GetTicks();
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop_arg([](void* arg) { static_cast<GLPong*>(arg)->Draw(); }, this,
+                               /*fps=*/0, /*simulate_infinite_loop=*/1);
+#else
   while (game_is_still_running_) {
     Draw();
 
@@ -261,6 +274,7 @@ bool GLPong::Run() {
     else
       SDL_Delay(100);
   }
+#endif
 
   // End
   return true;

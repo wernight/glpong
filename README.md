@@ -27,14 +27,15 @@ This game uses OpenGL, GLU and SDL.
 
 # Compilation
 
-Using Docker:
+Building the AppImage and  WebAssembly using Docker:
 
     $ docker compose build
-    $ docker run --rm glpong
+    $ docker compose down --remove-orphans
+    $ docker compose up
 
-This will:
+Then either go to http://localhost:8080/glpong.html or run
 
-  - Generate Linux binaries
+    $ bin/GLPong-x86_64.AppImage
 
 Alternatively, you may use CMake directly:
 

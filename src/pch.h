@@ -27,13 +27,20 @@
 
 #pragma once
 
-#include <GL/glew.h>
-
 #ifdef WIN32                          // If We're Under MSVC
 #pragma comment(lib, "OpenGL32.lib")  // We're Telling The Linker To Look For The OpenGL32.lib
 #pragma comment(lib, "GLu32.lib")     // The GLu32.lib Library...
 #pragma comment(lib, "SDL2main.lib")
 #pragma comment(lib, "SDL2.lib")
+#endif
+
+#ifdef __EMSCRIPTEN__
+#include <GL/Regal.h>
+#include <GL/RegalGLU.h>
+#include <GLES3/gl3.h>
+#include <emscripten.h>
+#else
+#include <GL/glew.h>
 #endif
 
 #include <GL/glu.h>

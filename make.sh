@@ -34,3 +34,30 @@ linuxdeploy \
 
 mv *.AppImage /code/bin/
 
+# Emscripten is to build WebAssembly from C++.
+WASMDIR=${CODEDIR}/bin/wasm
+source /opt/emscripten/emsdk_env.sh
+cd /code
+mkdir -p ${WASMDIR}
+
+# We don't include the whole /usr/include because it'd mess up Emscripten imports.
+# So we create a sub-set of the includes we want from the system.
+INCLUDE_EXTRA_DIR=/tmp/emscripten-extra-include
+mkdir -p ${INCLUDE_EXTRA_DIR}
+ln -fs /usr/include/stb ${INCLUDE_EXTRA_DIR}/stb
+ln -fs /usr/include/glm ${INCLUDE_EXTRA_DIR}/glm
+
+emcc src/*.cpp \
+    -I ${INCLUDE_EXTRA_DIR} \
+    -s USE_SDL=2 \
+    -s USE_REGAL=1 \
+    -s STB_IMAGE=1 \
+    -s USE_WEBGL2=1 \
+    -O2 \
+    -o ${WASMDIR}/glpong.html \
+    --preload-file ${CODEDIR}/res/particle.png@particle.png \
+    --preload-file ${CODEDIR}/res/small_blur_star.png@small_blur_star.png \
+    --emrun
+
+cd ${WASMDIR}
+exec emrun --no_browser --hostname 0.0.0.0 --port 8080 glpong.html

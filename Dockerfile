@@ -32,5 +32,15 @@ RUN set -eux; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 
+# Emscripten is to build WebAssembly from C++.
+# https://github.com/emscripten-core/emscripten/tags
+ARG EMSCRIPTEN_VERSION=4.0.14
+WORKDIR /opt/emscripten
+RUN curl -L https://github.com/emscripten-core/emsdk/archive/refs/tags/$EMSCRIPTEN_VERSION.tar.gz | tar xz --strip-components=1
+RUN ./emsdk install $EMSCRIPTEN_VERSION
+RUN ./emsdk activate $EMSCRIPTEN_VERSION
+
+# Port running a basec web server for testing.
+EXPOSE 8080
 WORKDIR /code
 CMD ["/code/make.sh"]
