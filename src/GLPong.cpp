@@ -31,6 +31,10 @@
 
 #include "StdAfx.h"
 #include "GLPong.h"
+
+#include <array>
+#include <filesystem>
+
 #include "Firework.h"
 #include "SceneManager.h"
 #include "Board.h"
@@ -49,11 +53,20 @@ CPaddle g_paddleRight(false);
 CBall g_ball;
 SDL_Window* g_pWindow;
 SDL_GLContext g_GLContext;
-GLuint g_texture[NUM_TEXTURES];  // Storage For Our Particle Texture
+std::array<GLuint, 2> g_textures;  // Storage For Our Particle Texture
 int g_done = false;    // main loop variable
 int g_isActive = true;  // whether or not the window is active
 Uint32 g_nPrevTicks;
 Uint32 g_nLastDraw;
+
+std::filesystem::path GetResourcePath(const std::string& relative) {
+    const char* appdir = std::getenv("APPDIR");
+    if (!appdir) {
+        // Not running in an AppImage -> fallback to current path
+        return std::filesystem::current_path() / relative;
+    }
+    return std::filesystem::path(appdir) / relative;
+}
 
 bool UserInputBoolean()
 {
@@ -173,7 +186,7 @@ int main(int argc, char *argv[])
     // Humain.
     g_ppaddleLeft = new CPaddle(true);
   }
-  g_ball.Create(&g_board, g_ppaddleLeft, &g_paddleRight);
+  g_ball.Create(&g_board, g_ppaddleLeft, &g_paddleRight, g_textures[0]);
 
   // Sets up OpenGL double buffering
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -274,10 +287,11 @@ void DrawGLScene()
 // All Setup For OpenGL Goes Here
 int InitGL(GLvoid)
 {
-  GLfloat LightAmbient[]=    { 0.5f, 0.5f, 0.5f, 1.0f };
-  GLfloat LightDiffuse[]=    { 1.0f, 1.0f, 1.0f, 1.0f };
+  constexpr GLfloat LightAmbient[]=    { 0.5f, 0.5f, 0.5f, 1.0f };
+  constexpr GLfloat LightDiffuse[]=    { 1.0f, 1.0f, 1.0f, 1.0f };
 
-  LoadGLTextures();
+  g_textures[0] = LoadGLTextures(GetResourcePath("particle.png").c_str());
+  g_textures[1] = LoadGLTextures(GetResourcePath("small_blur_star.png").c_str());
 
   glShadeModel(GL_SMOOTH);  // Enable Smooth Shading
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // Black Background
@@ -326,64 +340,61 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)
 }
 
 // Load Bitmaps And Convert To Textures
-bool LoadGLTextures()
+GLuint LoadGLTextures(const char* filename)
 {
-  bool succeeded = false;
-
   // Create storage space for the texture
-  SDL_Surface *TextureImage[NUM_TEXTURES];
+  SDL_Surface *sdl_surface;
 
-  TextureImage[0] = IMG_Load("particle.png");
-  TextureImage[1] = IMG_Load("small_blur_star.png");
+  sdl_surface = IMG_Load(filename);
 
   // Load The Bitmap, Check For Errors.
-  if (TextureImage[0] != nullptr && TextureImage[1] != nullptr)
+  if (sdl_surface == nullptr)
   {
-    succeeded = true;
-
-    glGenTextures(NUM_TEXTURES, &g_texture[0]);  // Create The Texture ( CHANGE )
-
-    for (int i=0; i<NUM_TEXTURES; i++)  // Loop Through Both Textures
-    {
-      GLint ncolors = TextureImage[i]->format->BytesPerPixel;
-      GLenum texture_format;
-      if (ncolors == 4)  // R, G, B, and A channels
-      {
-          if (TextureImage[i]->format->Rmask == 0x000000ff)
-              texture_format = GL_RGBA;
-          else
-              texture_format = GL_BGRA;
-      } else if (ncolors == 3)  // R, G, and B channels
-      {
-          if (TextureImage[i]->format->Rmask == 0x000000ff)
-              texture_format = GL_RGB;
-          else
-              texture_format = GL_BGR;
-      } else {
-        // this is not a supported image format
-        succeeded = false;
-        break;
-      }
-
-      // Typical Texture Generation Using Data From The TGA ( CHANGE )
-      glBindTexture(GL_TEXTURE_2D, g_texture[i]);
-      glTexImage2D(GL_TEXTURE_2D, 0, ncolors, TextureImage[i]->w, TextureImage[i]->h, 0, texture_format, GL_UNSIGNED_BYTE, TextureImage[i]->pixels);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
+    std::cerr << "Failed to load texture: " << filename << std::endl;
+    return 0;
   }
-  else
+
+  GLuint gl_texture;
+  glGenTextures(1, &gl_texture);
+
+  GLint ncolors = sdl_surface->format->BytesPerPixel;
+  GLenum texture_format;
+  switch (ncolors)
   {
-    for (int i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
-      // Mark that this texture isn't loaded.
-      g_texture[i] = 0;
+    case 1:  // Alpha-only
+      texture_format = GL_LUMINANCE;
+      break;
+
+    case 3:   // R, G, and B channels
+      if (sdl_surface->format->Rmask == 0x000000ff)
+        texture_format = GL_RGB;
+      else
+        texture_format = GL_BGR;
+      break;
+
+    case 4:  // R, G, B, and A channels
+      if (sdl_surface->format->Rmask == 0x000000ff)
+        texture_format = GL_RGBA;
+      else
+        texture_format = GL_BGRA;
+      break;
+
+    default:
+      // this is not a supported image format
+      std::cerr << "Unsupported image format: " << ncolors << std::endl;
+      return 0;
   }
+
+  // Typical Texture Generation Using Data From The TGA ( CHANGE )
+  glBindTexture(GL_TEXTURE_2D, gl_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, ncolors, sdl_surface->w, sdl_surface->h, 0, texture_format, GL_UNSIGNED_BYTE, sdl_surface->pixels);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   // Free up any memory we may have used
-  for (int i=0; i<NUM_TEXTURES && TextureImage[i]; i++)
-    SDL_FreeSurface(TextureImage[i]);
+  SDL_FreeSurface(sdl_surface);
 
-  return succeeded;
+  return gl_texture;
 }
 
 void DrawFirework()
@@ -399,8 +410,8 @@ void DrawFirework()
   // Init GL
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glBlendFunc(GL_ONE, GL_ONE);  // Type Of Blending To Perform
-  if (g_texture[1] != 0)
-    glBindTexture(GL_TEXTURE_2D, g_texture[1]);  // Select Our Texture
+  if (g_textures[1] != 0)
+    glBindTexture(GL_TEXTURE_2D, g_textures[1]);  // Select Our Texture
 
   // Create a rocket
   for (i=0; i<ROCKETS; ++i)

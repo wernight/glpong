@@ -24,8 +24,6 @@
 #include "Ball.h"
 #include "GLPong.h"
 
-extern GLuint    g_texture[NUM_TEXTURES];  // Storage For Our Particle Texture
-
 #define BALL_SPEED      110.0f
 #define BALL_SPEED_INCREASE  5.0f
 #define BALL_RADIUS      2.0f
@@ -43,13 +41,14 @@ CBall::~CBall()
 }
 
 // Create the ball.
-bool CBall::Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle)
+bool CBall::Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle, GLuint texture)
 {
   int i;
 
   m_pBoard = pBoard;
   m_pLeftPaddle = pLeftPaddle;
   m_pRightPaddle = pRightPaddle;
+  m_texture = texture;
 
   // Create a new ball.
   m_vBallPosition.y = 0.0f;
@@ -242,8 +241,8 @@ void CBall::Render() const
 
   // Particules
   glColor3f(0.0f, 1.0f, 0.0f);
-  if (g_texture[0] != 0)
-    glBindTexture(GL_TEXTURE_2D, g_texture[0]);
+  if (m_texture != 0)
+    glBindTexture(GL_TEXTURE_2D, m_texture);
   glPushAttrib(GL_ENABLE_BIT);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);

@@ -12,7 +12,7 @@ cmake --build $BUILDDIR
 APPDIR=/tmp/GLPong.AppDir
 rm -rf ${APPDIR} || true
 mkdir -p ${APPDIR}/usr/bin/
-cp /code/res/*.png ${APPDIR}/usr/bin/
+cp /code/res/*.png ${APPDIR}
 cp $BUILDDIR/glpong ${APPDIR}/usr/bin/
 
 # Generate the AppImage.

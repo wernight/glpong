@@ -23,15 +23,13 @@
 #ifndef __GLPONG_H__
 #define __GLPONG_H__
 
-#define NUM_TEXTURES    2    // Number of textures
-
 // Forward declarations of functions included in this code module:
 void DrawFPS();
 void DrawGLScene();
 int InitGL(GLvoid);
 GLvoid ReSizeGLScene(GLsizei width, GLsizei height);
 void UpdateScene(float t);
-bool LoadGLTextures();
+GLuint LoadGLTextures(const char* filename);
 void DrawFirework();
 
 #endif

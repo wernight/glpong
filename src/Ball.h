@@ -55,7 +55,7 @@ public:
   virtual ~CBall();
 
   // Create the ball.
-  bool Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle);
+  bool Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle, GLuint texture);
 
 // Implementation of IObject.
   // Initialize the object.
@@ -97,6 +97,7 @@ private:
   CBoard    *m_pBoard;
   CPaddle    *m_pLeftPaddle,
         *m_pRightPaddle;
+  GLuint m_texture;
   GLuint    m_nList;
   CRandomMT  m_rand;
 };
