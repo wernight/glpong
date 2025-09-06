@@ -25,16 +25,13 @@
 #include "Board.h"
 
 // Constructor
-CAiPaddle::CAiPaddle(bool bLeftPaddle) : CPaddle(bLeftPaddle),
-  m_pBall(NULL)
+AiPaddle::AiPaddle(bool is_left_paddel) : Paddle(is_left_paddel)
 {
 }
 
-// Create the AI.
-bool CAiPaddle::Create(CBall *pBall)
+void AiPaddle::TrackBall(std::shared_ptr<Ball> ball)
 {
-  m_pBall = pBall;
-  return true;
+  ball_ = ball;
 }
 
 /** Initialize the object.
@@ -44,7 +41,7 @@ bool CAiPaddle::Create(CBall *pBall)
  *
  * @return True if initialize successful and ready to update/render.
  */
-/*bool CAiPaddle::Initialize()
+/*bool AiPaddle::Initialize()
 {
   return true;
 }*/
@@ -52,10 +49,10 @@ bool CAiPaddle::Create(CBall *pBall)
 /** Update the object.
  * @param fTime    Time elapsed between two updates.
  */
-void CAiPaddle::Update(float fTime)
+void AiPaddle::Update(float fTime)
 {
   static float  fTotalTime = 0.0f;
-  CVector2D    vBallPos;
+  Vector2D    vBallPos;
   float      fBallDist,
           fRandom;
 
@@ -63,29 +60,29 @@ void CAiPaddle::Update(float fTime)
   fTotalTime += fTime;
 
   // Current ball's position.
-  vBallPos = m_pBall->GetPosition();
+  vBallPos = ball_->GetPosition();
 
   // Distance of the ball.
   if (m_bLeftPaddle)
-    fBallDist = CBoard::GetLeft() - vBallPos.x;
+    fBallDist = Board::GetLeft() - vBallPos.x;
   else
-    fBallDist = vBallPos.x - CBoard::GetRight();
+    fBallDist = vBallPos.x - Board::GetRight();
 
   // Approximation of ball's position.
-  fRandom = 0.5f*CPaddle::GetHeight()*cos(fTotalTime*6.0f);
+  fRandom = 0.5f*Paddle::GetHeight()*cos(fTotalTime*6.0f);
 
   // Try to get at same height.
-  if (fBallDist > 0.75f*CBoard::GetWidth())
+  if (fBallDist > 0.75f*Board::GetWidth())
     Stop(); // Don't move when ball is too far away.
-  else if (m_fY < vBallPos.y-0.2f*CPaddle::GetHeight()+fRandom)
+  else if (m_fY < vBallPos.y-0.2f*Paddle::GetHeight()+fRandom)
     MoveUp();
-  else if (m_fY > vBallPos.y+0.2f*CPaddle::GetHeight()+fRandom)
+  else if (m_fY > vBallPos.y+0.2f*Paddle::GetHeight()+fRandom)
     MoveDown();
   else
     Stop();
 
   // Update the normal paddle.
-  CPaddle::Update(fTime);
+  Paddle::Update(fTime);
 }
 
 /** Process event.
@@ -98,7 +95,7 @@ void CAiPaddle::Update(float fTime)
  * @param lParam  A value depending of the event type.
  * @return True if the message has been processed.
  */
-bool CAiPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
+bool AiPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
 {
   // Don't process events, so the player can NOT control the paddle.
   return false;

@@ -20,33 +20,27 @@
  * Web : www.beroux.com
  */
 
-#ifndef INC_BOARD_H_
-#define INC_BOARD_H_
-
-#ifdef _WIN32
 #pragma once
-#endif
 
 #include "IObject.h"
 
-class CBoard : public IObject
+class Board : public IObject
 {
 public:
 // Constructor
-  CBoard();
+  Board();
 
 // Implementation of IObject.
-  // Initialize the object.
-  bool Initialize();
+  void Reset();
 
   // Update the object.
-  void Update(float fTime);
+  void Update(float fTime) override;
 
   // Render the object.
-  void Render() const;
+  void Render() const override;
 
   // Process event.
-  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
 // Attributes
   static const float GetTop() {
@@ -72,6 +66,10 @@ public:
     return GetTop() - GetBottom();
   }
 
+  bool IsGameOver() const {
+    return m_bIsGameOver;
+  }
+
 // Operations
   // Add points to a player's score.
   void Score(bool bLeftPlayer);
@@ -80,11 +78,9 @@ public:
 private:
   static void DrawDigitNumber(int nNumber);
 
-  int      m_nLeftScore,
-        m_nRightScore;
-  float    m_fIlluminateLeftBorder,      // Illuminate the left border.
-        m_fIlluminateRightBorder;      // Illuminate the right border.
+  int m_nLeftScore;
+  int m_nRightScore;
+  float m_fIlluminateLeftBorder;      // Illuminate the left border.
+  float m_fIlluminateRightBorder;      // Illuminate the right border.
+  bool m_bIsGameOver;
 };
-
-#endif
-

@@ -19,12 +19,7 @@
  * Web : www.beroux.com
  */
 
-#ifndef INC_INTERFACE_OBJECT_H_
-#define INC_INTERFACE_OBJECT_H_
-
-#ifdef _WIN32
 #pragma once
-#endif
 
 class IObject
 {
@@ -40,15 +35,6 @@ public:
 
 // Constructors
   virtual ~IObject() {};
-
-  /** Initialize the object.
-   * Once OpenGL ready the initialize function of each object is called.
-   * In this function object should initialize their OpenGL related data
-   * and prepare to render.
-   *
-   * @return True if initialize successful and ready to update/render.
-   */
-  virtual bool Initialize() = 0;
 
 // Operations
   /** Update the object.
@@ -72,6 +58,3 @@ public:
    */
   virtual bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) = 0;
 };
-
-#endif
-

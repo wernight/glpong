@@ -1,6 +1,3 @@
-#ifndef INC_MT_PSEUDO_RANDOM_NUMBER_GENERATOR_H_
-#define INC_MT_PSEUDO_RANDOM_NUMBER_GENERATOR_H_
-
 /*
    A C-program for MT19937, with initialization improved 2002/1/26.
    Coded by Takuji Nishimura and Makoto Matsumoto.
@@ -51,21 +48,19 @@
  * \date 2004.11.07
  */
 
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 #include <time.h>
 
-class CRandomMT
+class RandomMT
 {
 // Construction
 public:
-  CRandomMT()
+  RandomMT()
   {
     Initialite( 5489UL );
   }
-  CRandomMT(unsigned long seed)
+  RandomMT(unsigned long seed)
   {
     Initialite( seed );
   }
@@ -237,5 +232,3 @@ private:
   unsigned long mt[N]; /* the array for the state vector  */
   int mti;
 };
-
-#endif

@@ -8,69 +8,43 @@
  */
 
 #include "StdAfx.h"
+#include <memory>
 #include "SceneManager.h"
 
-CSceneManager::CSceneManager(void)
+SceneManager::SceneManager(void)
 {
 }
 
-CSceneManager::~CSceneManager(void)
+SceneManager::~SceneManager(void)
 {
 }
 
-/** Add object to the list.
- * @param pObject  Pointer to the new object to add.
- * @return True if successful.
- */
-bool CSceneManager::AddObject(IObject *pObject)
+void SceneManager::AddObject(std::shared_ptr<IObject> object)
 {
-  try
-  {
-    m_pvObjects.push_back(pObject);
-  }
-  catch (...)
-  {
-    return false;
-  }
-  return true;
+  objects_.push_back(object);
 }
 
-/** Initialize the object.
- * Once OpenGL ready the initialize function of each object is called.
- * In this function object should initialize their OpenGL related data
- * and prepare to render.
- *
- * @return True if initialize successful and ready to update/render.
- */
-bool CSceneManager::Initialize()
+void SceneManager::RemoveObject(std::shared_ptr<IObject> object)
 {
-  std::vector<IObject*>::iterator  iter;
-
-  for (iter=m_pvObjects.begin(); iter!=m_pvObjects.end(); ++iter)
-    if (!(*iter)->Initialize())
-      return false;
-  return true;
+  for (auto it = objects_.begin(); it != objects_.end(); ++it)
+    if (*it == object) {
+      objects_.erase(it);
+      break;
+    }
 }
 
-/** Asks objects to update their content.
- * @param fTime    Time elapsed between two updates.
- */
-void CSceneManager::Update(float fTime)
+void SceneManager::Update(float fTime)
 {
-  std::vector<IObject*>::iterator  iter;
-
-  for (iter=m_pvObjects.begin(); iter!=m_pvObjects.end(); ++iter)
-    (*iter)->Update(fTime);
+  for (auto& object : objects_)
+    object->Update(fTime);
 }
 
 /** Asks objects to render.
  */
-void CSceneManager::Render() const
+void SceneManager::Render() const
 {
-  std::vector<IObject*>::const_iterator  iter;
-
-  for (iter=m_pvObjects.begin(); iter!=m_pvObjects.end(); ++iter)
-    (*iter)->Render();
+  for (const auto& object : objects_)
+    object->Render();
 }
 
 /** Asks objects to process an event.
@@ -83,12 +57,10 @@ void CSceneManager::Render() const
  * @param lParam  A value depending of the event type.
  * @return True if the message has been processed.
  */
-bool CSceneManager::ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam)
+bool SceneManager::ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam)
 {
-  std::vector<IObject*>::iterator  iter;
-
-  for (iter=m_pvObjects.begin(); iter!=m_pvObjects.end(); ++iter)
-    if ((*iter)->ProcessEvent(nEvent, wParam, lParam))
+  for (auto& object : objects_)
+    if (object->ProcessEvent(nEvent, wParam, lParam))
       return true;
   return false;
 }

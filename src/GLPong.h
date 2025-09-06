@@ -20,17 +20,41 @@
  * Web : www.beroux.com
  */
 
-#ifndef __GLPONG_H__
-#define __GLPONG_H__
+#pragma once
 
-// Forward declarations of functions included in this code module:
-void DrawFPS();
-void DrawGLScene();
-int InitGL(GLvoid);
-GLvoid ReSizeGLScene(GLsizei width, GLsizei height);
-void UpdateScene(float t);
-GLuint LoadGLTextures(const char* filename);
-void DrawFirework();
+#include "StdAfx.h"
+#include "SceneManager.h"
+#include "Board.h"
+#include "Ball.h"
+#include "Firework.h"
+#include <memory>
 
-#endif
+class GLPong
+{
+ public:
+  GLPong();
+  ~GLPong();
 
+  bool Run();
+
+ private:
+  void ProcessEvents();
+  void Draw();
+  void DrawFPS();
+  void DrawGLScene();
+  void InitGL(bool vs_ai);
+  void UpdateScene(float t);
+
+  SceneManager scene_;
+  std::shared_ptr<Board> board_;
+  std::shared_ptr<Firework> firework_;
+  std::shared_ptr<Ball> ball_;
+  SDL_Window* sdl_window_;
+  SDL_GLContext gl_context_;
+  GLuint particle_texture_;
+  GLuint star_texture_;
+  bool game_is_still_running_ = true;    // main loop variable
+  bool is_active_ = true;  // whether or not the window is active
+  Uint32 prev_ticks_;
+  Uint32 last_draw_ticks_;
+};

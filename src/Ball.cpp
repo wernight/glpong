@@ -22,40 +22,26 @@
 
 #include "StdAfx.h"
 #include "Ball.h"
-#include "GLPong.h"
 
-#define BALL_SPEED      110.0f
-#define BALL_SPEED_INCREASE  5.0f
-#define BALL_RADIUS      2.0f
-#define BALL_MAX_ANGLE    M_PI/3.0f  // y = a*x
-#define BALL_MIN_ANGLE    M_PI/7.0f  // y = a*x
-#define PART_SIZE      1.7f
+constexpr float BALL_SPEED = 110.0f;
+constexpr float BALL_SPEED_INCREASE = 5.0f;
+constexpr float BALL_RADIUS = 2.0f;
+constexpr float BALL_MAX_ANGLE = M_PI/3.0f;  // y = a*x
+constexpr float BALL_MIN_ANGLE = M_PI/7.0f;  // y = a*x
+constexpr float PART_SIZE = 1.7f;
 
-// Constructor
-CBall::CBall()
+Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle, std::shared_ptr<Paddle> right_paddle, GLuint texture)
+  : board_(board)
+  , left_paddle_(left_paddle)
+  , right_paddle_(right_paddle)
+  , texture_(texture)
 {
-}
-
-CBall::~CBall()
-{
-}
-
-// Create the ball.
-bool CBall::Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle, GLuint texture)
-{
-  int i;
-
-  m_pBoard = pBoard;
-  m_pLeftPaddle = pLeftPaddle;
-  m_pRightPaddle = pRightPaddle;
-  m_texture = texture;
-
   // Create a new ball.
   m_vBallPosition.y = 0.0f;
   NewBall(m_rand.RandomInt()%2 == 0);
 
   // Init particles.
-  for (i=0; i<sizeof(m_particles)/sizeof(m_particles[0]); ++i)  // i Through All The Particles
+  for (int i=0; i<sizeof(m_particles)/sizeof(m_particles[0]); ++i)  // i Through All The Particles
   {
     m_particles[i].life = 1.0f;
     m_particles[i].fade = (float) m_rand.RandomRange(3.0f, 28.0f);  // Random Fade Value
@@ -63,20 +49,7 @@ bool CBall::Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle, 
     m_particles[i].y = m_vBallSpeed.y;
     m_particles[i].z = -BALL_RADIUS;
   }
-  return true;
-}
-
-/** Initialize the object.
- * Once OpenGL ready the initialize function of each object is called.
- * In this function object should initialize their OpenGL related data
- * and prepare to render.
- *
- * @return True if initialize successful and ready to update/render.
- */
-bool CBall::Initialize()
-{
-  GLUquadricObj  *pQuadObj;
-
+  
   // Initiliaz random number generator.
   m_rand.Randomize();
 
@@ -84,38 +57,41 @@ bool CBall::Initialize()
   m_nList = glGenLists(1);
   glNewList(m_nList, GL_COMPILE);
     glColor3f(0.0f, 1.0f, 0.0f);
-    pQuadObj = gluNewQuadric();
+    GLUquadricObj *pQuadObj = gluNewQuadric();
     gluQuadricNormals(pQuadObj, GLU_SMOOTH);
     gluSphere(pQuadObj, BALL_RADIUS, 7, 5);
     gluDeleteQuadric(pQuadObj);
   glEndList();
-  return true;
+}
+
+Ball::~Ball()
+{
 }
 
 /** Update the object.
  * @param fTime    Time elapsed between two updates.
  */
-void CBall::Update(float fTime)
+void Ball::Update(float fTime)
 {
-  CVector2D  vNewBallPos(m_vBallPosition + m_vBallSpeed*fTime);
+  Vector2D  vNewBallPos(m_vBallPosition + m_vBallSpeed*fTime);
   double    dAngle,
         dSpeed;
   int i;
 
   // Bounce top/bottom
-  if (vNewBallPos.y+BALL_RADIUS > CBoard::GetTop())
+  if (vNewBallPos.y+BALL_RADIUS > Board::GetTop())
   {
     m_vBallSpeed.y = -m_vBallSpeed.y;
-    vNewBallPos.y = 2.0f*(CBoard::GetTop()-BALL_RADIUS) - vNewBallPos.y;
+    vNewBallPos.y = 2.0f*(Board::GetTop()-BALL_RADIUS) - vNewBallPos.y;
   }
-  else if (vNewBallPos.y-BALL_RADIUS < CBoard::GetBottom())
+  else if (vNewBallPos.y-BALL_RADIUS < Board::GetBottom())
   {
     m_vBallSpeed.y = -m_vBallSpeed.y;
-    vNewBallPos.y = 2.0f*(CBoard::GetBottom()+BALL_RADIUS) - vNewBallPos.y;
+    vNewBallPos.y = 2.0f*(Board::GetBottom()+BALL_RADIUS) - vNewBallPos.y;
   }
 
   // Left paddle collision detection.
-  if (vNewBallPos.x+BALL_RADIUS > CBoard::GetLeft()-CPaddle::GetWidth())
+  if (vNewBallPos.x+BALL_RADIUS > Board::GetLeft()-Paddle::GetWidth())
   {
     // y = a*x + b
     float  a = m_vBallSpeed.y / m_vBallSpeed.x,
@@ -123,16 +99,16 @@ void CBall::Update(float fTime)
         y;
 
     // Bounce on paddle?
-    if (m_vBallPosition.x+BALL_RADIUS <= CBoard::GetLeft()-CPaddle::GetWidth() &&
-      (y = a*(CBoard::GetLeft()-CPaddle::GetWidth()-BALL_RADIUS) + b)-BALL_RADIUS <= m_pLeftPaddle->GetPosition()+CPaddle::GetHeight()*0.5f &&
-      y+BALL_RADIUS >= m_pLeftPaddle->GetPosition()-CPaddle::GetHeight()*0.5f)
+    if (m_vBallPosition.x+BALL_RADIUS <= Board::GetLeft()-Paddle::GetWidth() &&
+      (y = a*(Board::GetLeft()-Paddle::GetWidth()-BALL_RADIUS) + b)-BALL_RADIUS <= left_paddle_->GetPosition()+Paddle::GetHeight()*0.5f &&
+      y+BALL_RADIUS >= left_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)
     {
       // Illuminate.
-      m_pLeftPaddle->Illuminate();
+      left_paddle_->Illuminate();
       // Bounce.
-      vNewBallPos.x = 2.0f*(CBoard::GetLeft()-CPaddle::GetWidth()-BALL_RADIUS) - vNewBallPos.x;
+      vNewBallPos.x = 2.0f*(Board::GetLeft()-Paddle::GetWidth()-BALL_RADIUS) - vNewBallPos.x;
       // Bouce angle.
-      dAngle = (m_pLeftPaddle->GetPosition() - vNewBallPos.y) * M_PI/4.0f / (CPaddle::GetHeight()/2.0f) + M_PI;
+      dAngle = (left_paddle_->GetPosition() - vNewBallPos.y) * M_PI/4.0f / (Paddle::GetHeight()/2.0f) + M_PI;
 
       // Increase speed
       dSpeed = m_vBallSpeed.Norm() + BALL_SPEED_INCREASE;
@@ -140,19 +116,19 @@ void CBall::Update(float fTime)
       m_vBallSpeed.y = float(sin(dAngle)*dSpeed);
     }
 /*    // Bounce on corners?
-    else if (HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, CVector2D(CBoard::GetLeft()-CPaddle::GetWidth(), m_pLeftPaddle->GetPosition()+CPaddle::GetHeight()*0.5f)) ||
-         HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, CVector2D(CBoard::GetLeft()-CPaddle::GetWidth(), m_pLeftPaddle->GetPosition()-CPaddle::GetHeight()*0.5f)))
+    else if (HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetLeft()-Paddle::GetWidth(), left_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) ||
+         HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetLeft()-Paddle::GetWidth(), left_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)))
     { }*/
     // Score?
-    else if (vNewBallPos.x+BALL_RADIUS > CBoard::GetLeft())
+    else if (vNewBallPos.x+BALL_RADIUS > Board::GetLeft())
     {
-      m_pBoard->Score(true);
+      board_->Score(true);
       NewBall(true);
       vNewBallPos = m_vBallPosition;
     }
   }
   // Right paddle collision detection.
-  else if (vNewBallPos.x-BALL_RADIUS < CBoard::GetRight()+CPaddle::GetWidth())
+  else if (vNewBallPos.x-BALL_RADIUS < Board::GetRight()+Paddle::GetWidth())
   {
     // y = a*x + b
     float  a = m_vBallSpeed.y / m_vBallSpeed.x,
@@ -160,16 +136,16 @@ void CBall::Update(float fTime)
         y;
 
     // Bounce on paddle?
-    if (m_vBallPosition.x-BALL_RADIUS >= CBoard::GetRight()+CPaddle::GetWidth() &&
-      (y = a*(CBoard::GetRight()+CPaddle::GetWidth()+BALL_RADIUS) + b)-BALL_RADIUS <= m_pRightPaddle->GetPosition()+CPaddle::GetHeight()*0.5f &&
-      y+BALL_RADIUS >= m_pRightPaddle->GetPosition()-CPaddle::GetHeight()*0.5f)
+    if (m_vBallPosition.x-BALL_RADIUS >= Board::GetRight()+Paddle::GetWidth() &&
+      (y = a*(Board::GetRight()+Paddle::GetWidth()+BALL_RADIUS) + b)-BALL_RADIUS <= right_paddle_->GetPosition()+Paddle::GetHeight()*0.5f &&
+      y+BALL_RADIUS >= right_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)
     {
       // Illuminate.
-      m_pRightPaddle->Illuminate();
+      right_paddle_->Illuminate();
       // Bounce.
-      vNewBallPos.x = 2.0f*(CBoard::GetRight()+CPaddle::GetWidth()+BALL_RADIUS) - vNewBallPos.x;
+      vNewBallPos.x = 2.0f*(Board::GetRight()+Paddle::GetWidth()+BALL_RADIUS) - vNewBallPos.x;
       // Bouce angle.
-      dAngle = (vNewBallPos.y - m_pRightPaddle->GetPosition()) * M_PI/4.0f / (CPaddle::GetHeight()/2.0f);
+      dAngle = (vNewBallPos.y - right_paddle_->GetPosition()) * M_PI/4.0f / (Paddle::GetHeight()/2.0f);
 
       // Increase speed
       dSpeed = m_vBallSpeed.Norm() + BALL_SPEED_INCREASE;
@@ -177,13 +153,13 @@ void CBall::Update(float fTime)
       m_vBallSpeed.y = float(sin(dAngle)*dSpeed);
     }
 /*    // Bounce on corners?
-    else if (HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, CVector2D(CBoard::GetRight()+CPaddle::GetWidth(), m_pRightPaddle->GetPosition()+CPaddle::GetHeight()*0.5f)) ||
-         HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, CVector2D(CBoard::GetRight()+CPaddle::GetWidth(), m_pRightPaddle->GetPosition()-CPaddle::GetHeight()*0.5f)))
+    else if (HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetRight()+Paddle::GetWidth(), right_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) ||
+         HitPoint(m_vBallPosition, vNewBallPos, m_vBallSpeed, Vector2D(Board::GetRight()+Paddle::GetWidth(), right_paddle_->GetPosition()-Paddle::GetHeight()*0.5f)))
     { }*/
     // Score?
-    else if (vNewBallPos.x-BALL_RADIUS < CBoard::GetRight())
+    else if (vNewBallPos.x-BALL_RADIUS < Board::GetRight())
     {
-      m_pBoard->Score(false);
+      board_->Score(false);
       NewBall(false);
       vNewBallPos = m_vBallPosition;
     }
@@ -212,10 +188,10 @@ void CBall::Update(float fTime)
 
 /** Render the object.
  */
-void CBall::Render() const
+void Ball::Render() const
 {
   float       fModelView[16];
-  CVector3D    vCenter,
+  Vector3D    vCenter,
           vRight,
           vUp,
           vVertex;
@@ -241,8 +217,8 @@ void CBall::Render() const
 
   // Particules
   glColor3f(0.0f, 1.0f, 0.0f);
-  if (m_texture != 0)
-    glBindTexture(GL_TEXTURE_2D, m_texture);
+  if (texture_ != 0)
+    glBindTexture(GL_TEXTURE_2D, texture_);
   glPushAttrib(GL_ENABLE_BIT);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -277,13 +253,13 @@ void CBall::Render() const
  * @param lParam  A value depending of the event type.
  * @return True if the message has been processed.
  */
-bool CBall::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
+bool Ball::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
 {
   return false;
 }
 
 // Create a new ball aimed toward left or right player.
-void CBall::NewBall(bool bGoToLeft)
+void Ball::NewBall(bool bGoToLeft)
 {
   float fAngle;
 
@@ -295,10 +271,10 @@ void CBall::NewBall(bool bGoToLeft)
   if (bGoToLeft)
   {
     fAngle += float(M_PI);
-    m_vBallPosition.x = CBoard::GetLeft()-CPaddle::GetWidth();
+    m_vBallPosition.x = Board::GetLeft()-Paddle::GetWidth();
   }
   else
-    m_vBallPosition.x = CBoard::GetRight()+CPaddle::GetWidth();
+    m_vBallPosition.x = Board::GetRight()+Paddle::GetWidth();
   m_vBallSpeed.x = (float)cos(fAngle)*BALL_SPEED;
   m_vBallSpeed.y = (float)sin(fAngle)*BALL_SPEED;
 }
@@ -309,7 +285,7 @@ void CBall::NewBall(bool bGoToLeft)
  * @param ptA    Position of the point A.
  * @return If colliside returns true and update speed vector, else returns false.
  */
-inline bool CBall::HitPoint(CVector2D &vOldPos, CVector2D &vNewPos, CVector2D &vSpeed, CVector2D &ptA)
+inline bool Ball::HitPoint(Vector2D &vOldPos, Vector2D &vNewPos, Vector2D &vSpeed, Vector2D &ptA)
 {
   // Position where distance from line y=a*x+b to the point A is the shortest.
   float  a = vSpeed.y / vSpeed.x,
@@ -336,7 +312,7 @@ inline bool CBall::HitPoint(CVector2D &vOldPos, CVector2D &vNewPos, CVector2D &v
     return false;
 
   // The shortest vector from A to the line defined by y=a*x+b.
-  CVector2D vect(x - ptA.x, a*x+b - ptA.y);
+  Vector2D vect(x - ptA.x, a*x+b - ptA.y);
 
   // Update speed vector.
   vSpeed = vect * ((vSpeed.Norm()+BALL_SPEED_INCREASE) / vect.Norm());

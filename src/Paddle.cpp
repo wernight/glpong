@@ -30,22 +30,11 @@
 #define  PADDLE_ILLUMINATE_FADE  0.3f
 
 // Constructor
-CPaddle::CPaddle(bool bLeftPaddle) :
+Paddle::Paddle(bool bLeftPaddle) :
   m_fSpeed(0.0f),
   m_fY(0.0f),
-  m_fIlluminate(0.0f)
-{
-  m_bLeftPaddle = bLeftPaddle;
-}
-
-/** Initialize the object.
- * Once OpenGL ready the initialize function of each object is called.
- * In this function object should initialize their OpenGL related data
- * and prepare to render.
- *
- * @return True if initialize successful and ready to update/render.
- */
-bool CPaddle::Initialize()
+  m_fIlluminate(0.0f),
+  m_bLeftPaddle(bLeftPaddle)
 {
   m_nGLPaddle = glGenLists(1);
   glNewList(m_nGLPaddle, GL_COMPILE);
@@ -53,65 +42,61 @@ bool CPaddle::Initialize()
   {
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 0.0f, -1.0f);
-    glVertex3f(CBoard::GetLeft(), GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetLeft(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft(), GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft()-GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
 
     glNormal3f(-1.0f, 0.0f, 0.0f);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetLeft()-GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetLeft()-GetWidth(), GetHeight()/2.0f, 0);
 
     glNormal3f(0.0f, -1.0f, 0.0f);
-    glVertex3f(CBoard::GetLeft(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetLeft(), -GetHeight()/2.0f, 0);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(CBoard::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetLeft(), -GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetLeft()-GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
     glEnd();
   }
   else
   {
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 0.0f, -1.0f);
-    glVertex3f(CBoard::GetRight()+GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetRight(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetRight(), GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight()+GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight(), GetHeight()/2.0f, -PADDLE_BEVEL);
 
     glNormal3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(CBoard::GetRight()+GetWidth(), GetHeight()/2.0f, 0);
-    glVertex3f(CBoard::GetRight()+GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(CBoard::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetRight()+GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight()+GetWidth(), GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight()+GetWidth(), GetHeight()/2.0f, -PADDLE_BEVEL);
 
     glNormal3f(0.0f, -1.0f, 0.0f);
-    glVertex3f(CBoard::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
-    glVertex3f(CBoard::GetRight()+GetWidth(), -GetHeight()/2.0f, 0);
-    glVertex3f(CBoard::GetRight(), -GetHeight()/2.0f, 0);
-    glVertex3f(CBoard::GetRight(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, -PADDLE_BEVEL);
+    glVertex3f(Board::GetRight()+GetWidth(), -GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetRight(), -GetHeight()/2.0f, 0);
+    glVertex3f(Board::GetRight(), -GetHeight()/2.0f, -PADDLE_BEVEL);
     glEnd();
   }
   glEndList();
-  return true;
 }
 
-/** Update the object.
- * @param fTime    Time elapsed between two updates.
- */
-void CPaddle::Update(float fTime)
+void Paddle::Update(float fTime)
 {
   // Update paddle position.
   m_fY += m_fSpeed * fTime;
-  if (m_fY > CBoard::GetTop() - GetHeight()/2.0f)
+  if (m_fY > Board::GetTop() - GetHeight()/2.0f)
   {
-    m_fY = CBoard::GetTop() - GetHeight()/2.0f;;
+    m_fY = Board::GetTop() - GetHeight()/2.0f;;
     m_fSpeed = 0.0f;
   }
-  if (m_fY < CBoard::GetBottom() + GetHeight()/2.0f)
+  if (m_fY < Board::GetBottom() + GetHeight()/2.0f)
   {
-    m_fY = CBoard::GetBottom() + GetHeight()/2.0f;
+    m_fY = Board::GetBottom() + GetHeight()/2.0f;
     m_fSpeed = 0.0f;
   }
 
@@ -124,7 +109,7 @@ void CPaddle::Update(float fTime)
 
 /** Render the object.
  */
-void CPaddle::Render() const
+void Paddle::Render() const
 {
   // Paddle.
   glPushMatrix();
@@ -144,7 +129,7 @@ void CPaddle::Render() const
  * @param lParam  A value depending of the event type.
  * @return True if the message has been processed.
  */
-bool CPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
+bool Paddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
 {
   switch (nEvent)
   {
@@ -214,25 +199,25 @@ bool CPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lP
 }
 
 // Move paddle upward.
-void CPaddle::MoveUp()
+void Paddle::MoveUp()
 {
   m_fSpeed = PADDLE_SPEED;
 }
 
 // Move paddle downward.
-void CPaddle::MoveDown()
+void Paddle::MoveDown()
 {
   m_fSpeed = -PADDLE_SPEED;
 }
 
 // Stop moving paddle.
-void CPaddle::Stop()
+void Paddle::Stop()
 {
   m_fSpeed = 0.0f;
 }
 
 // Illuminate paddle.
-void CPaddle::Illuminate()
+void Paddle::Illuminate()
 {
   m_fIlluminate = PADDLE_ILLUMINATE;
 }

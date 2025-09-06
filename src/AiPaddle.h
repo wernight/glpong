@@ -20,39 +20,28 @@
  * Web : www.beroux.com
  */
 
-#ifndef INC_AI_PADDLE_H_
-#define INC_AI_PADDLE_H_
-
-#ifdef _WIN32
 #pragma once
-#endif
 
 #include "Paddle.h"
 #include "Ball.h"
+#include <memory>
 
-class CAiPaddle : public CPaddle
+class AiPaddle : public Paddle
 {
 public:
 // Constructor
-  CAiPaddle(bool bLeftPaddle);
+  AiPaddle(bool is_left_paddel);
 
-  // Create the AI.
-  bool Create(CBall *pBall);
+  void TrackBall(std::shared_ptr<Ball> ball);
 
 // Overrides
-/*  // Initialize the object.
-  bool Initialize();*/
-
   // Update the object.
-  void Update(float fTime);
+  void Update(float fTime) override;
 
   // Process event.
-  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
 // Implementation
 private:
-  CBall  *m_pBall;
+  std::shared_ptr<Ball> ball_;
 };
-
-#endif
-

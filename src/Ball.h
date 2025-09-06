@@ -22,12 +22,9 @@
  * Web : www.beroux.com
  */
 
-#ifndef INC_BALL_H_
-#define INC_BALL_H_
-
-#ifdef _WIN32
 #pragma once
-#endif
+
+#include <memory>
 
 #include "IObject.h"
 #include "Board.h"
@@ -36,7 +33,7 @@
 #include "RandomMT.h"
 
 // Structures
-struct PARTICLE            // Create A Structure For Particle
+struct Particle            // Create A Structure For Particle
 {
 //  bool  active;          // Active (Yes/No)
   float  life;          // life
@@ -47,38 +44,32 @@ struct PARTICLE            // Create A Structure For Particle
   float  color[4];        // RGBA Color - A = life
 };                  // Particles Structure
 
-class CBall : public IObject
+class Ball : public IObject
 {
 // Constructor
 public:
-  CBall();
-  virtual ~CBall();
-
-  // Create the ball.
-  bool Create(CBoard *pBoard, CPaddle *pLeftPaddle, CPaddle *pRightPaddle, GLuint texture);
+  Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle, std::shared_ptr<Paddle> right_paddle, GLuint texture);
+  virtual ~Ball();
 
 // Implementation of IObject.
-  // Initialize the object.
-  bool Initialize();
-
   // Update the object.
-  void Update(float fTime);
+  void Update(float fTime) override;
 
   // Render the object.
-  void Render() const;
+  void Render() const override;
 
   // Process event.
-  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
 // Attributes
   // Current ball's location.
-  inline CVector2D GetPosition()
+  inline Vector2D GetPosition()
   {
     return m_vBallPosition;
   }
 
   // Current ball's velocity.
-  inline CVector2D GetSpeed()
+  inline Vector2D GetSpeed()
   {
     return m_vBallSpeed;
   }
@@ -89,18 +80,15 @@ private:
   void NewBall(bool bGoToLeft);
 
   // Detects if the ball collide with a point A.
-  inline bool HitPoint(CVector2D &vOldPos, CVector2D &vNewPos, CVector2D &vSpeed, CVector2D &ptA);
+  inline bool HitPoint(Vector2D &vOldPos, Vector2D &vNewPos, Vector2D &vSpeed, Vector2D &ptA);
 
-  CVector2D  m_vBallPosition,  // Ball's position.
-        m_vBallSpeed;    // Ball's speed.
-  PARTICLE  m_particles[50];  // Particles
-  CBoard    *m_pBoard;
-  CPaddle    *m_pLeftPaddle,
-        *m_pRightPaddle;
-  GLuint m_texture;
-  GLuint    m_nList;
-  CRandomMT  m_rand;
+  std::shared_ptr<Board> board_;
+  std::shared_ptr<Paddle> left_paddle_;
+  std::shared_ptr<Paddle> right_paddle_;
+  GLuint texture_;
+  Vector2D m_vBallPosition;  // Ball's position.
+  Vector2D m_vBallSpeed;    // Ball's speed.
+  Particle  m_particles[50];  // Particles
+  GLuint m_nList;
+  RandomMT m_rand;
 };
-
-#endif
-

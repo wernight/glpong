@@ -14,45 +14,37 @@
  * \warning The objects order in important.
  */
 
-#ifndef INC_SCENE_MANAGER_H_
-#define INC_SCENE_MANAGER_H_
-
-#ifdef _WIN32
 #pragma once
-#endif
+
+#include <memory>
 
 #include "IObject.h"
 #include <vector>
 
-class CSceneManager : public IObject
+class SceneManager : public IObject
 {
 // Constructors
 public:
-  CSceneManager(void);
-  virtual ~CSceneManager(void);
+  SceneManager();
+  virtual ~SceneManager();
 
 // Attributes
 
 // Operations
   // Add object to the list.
-  virtual bool  AddObject(IObject *pObject);
-
-  // Initialize the object.
-  virtual bool  Initialize();
+  void AddObject(std::shared_ptr<IObject> object);
+  void RemoveObject(std::shared_ptr<IObject> object);
 
   // Asks objects to update their content.
-  virtual void  Update(float fTime);
+  virtual void  Update(float fTime) override;
 
   // Asks objects to render.
-  virtual void  Render() const;
+  virtual void  Render() const override;
 
   // Asks objects to process an event.
-  virtual bool  ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam);
+  virtual bool  ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam) override;
 
 // Implementation
 private:
-  std::vector<IObject*> m_pvObjects;
+  std::vector<std::shared_ptr<IObject>> objects_;
 };
-
-#endif
-

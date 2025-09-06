@@ -22,45 +22,35 @@
 
 #include "StdAfx.h"
 #include "Board.h"
-#include "GLPong.h"  // For the firework.
 
-#define BORDER_BEVEL    4.0f
-#define BORDER_WIDTH    4.0f
+constexpr float BORDER_BEVEL = 4.0f;
+constexpr float BORDER_WIDTH = 4.0f;
 
-#define ILLUMINATE_DURATION 0.5f
+constexpr float ILLUMINATE_DURATION = 0.5f;
 
-#define DIGIT_HEIGHT    20.0f
-#define DIGIT_WIDTH      12.0f
-#define DIGIT_BORDER    2.0f
-#define DIGIT_INNER_SPACING  0.6f
-#define DIGIT_SPACING    3.0f
+constexpr float DIGIT_HEIGHT = 20.0f;
+constexpr float DIGIT_WIDTH = 12.0f;
+constexpr float DIGIT_BORDER = 2.0f;
+constexpr float DIGIT_INNER_SPACING = 0.6f;
+constexpr float DIGIT_SPACING = 3.0f;
 
 // Constructor
-CBoard::CBoard() :
+Board::Board() :
   m_nLeftScore(0),
   m_nRightScore(0),
   m_fIlluminateLeftBorder(0.0f),
-  m_fIlluminateRightBorder(0.0f)
+  m_fIlluminateRightBorder(0.0f),
+  m_bIsGameOver(false)
 {
 }
 
-
-/** Initialize the object.
- * Once OpenGL ready the initialize function of each object is called.
- * In this function object should initialize their OpenGL related data
- * and prepare to render.
- *
- * @return True if initialize successful and ready to update/render.
- */
-bool CBoard::Initialize()
+void Board::Reset()
 {
-  return true;
+  m_nLeftScore = m_nRightScore = 0;
+  m_bIsGameOver = false;
 }
 
-/** Update the object.
- * @param fTime    Time elapsed between two updates.
- */
-void CBoard::Update(float fTime)
+void Board::Update(float fTime)
 {
   // Illumination.
   if (m_fIlluminateLeftBorder > 0.0f)
@@ -74,9 +64,7 @@ void CBoard::Update(float fTime)
     m_fIlluminateRightBorder = 0.0f;
 }
 
-/** Render the object.
- */
-void CBoard::Render() const
+void Board::Render() const
 {
   // Ground
   glBegin(GL_QUADS);
@@ -174,13 +162,13 @@ void CBoard::Render() const
  * @param lParam  A value depending of the event type.
  * @return True if the message has been processed.
  */
-bool CBoard::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
+bool Board::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
 {
   return false;
 }
 
 // Add points to a player's score.
-void CBoard::Score(bool bLeftPlayer)
+void Board::Score(bool bLeftPlayer)
 {
   int *pnScore;
 
@@ -206,13 +194,11 @@ void CBoard::Score(bool bLeftPlayer)
   if ((m_nLeftScore > 40 || m_nRightScore > 40) &&
     abs(m_nLeftScore-m_nRightScore) > 10)
   {
-    // Affiche le feu d'artifice
-    DrawFirework();
-    m_nLeftScore = m_nRightScore = 0;
+    m_bIsGameOver = true;
   }
 }
 
-void CBoard::DrawDigitNumber(int nNumber)
+void Board::DrawDigitNumber(int nNumber)
 {
   bool  a,b,c,d,e,f,g;
   /*                                                   f

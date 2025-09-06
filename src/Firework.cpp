@@ -28,331 +28,316 @@
 
 #include "StdAfx.h"
 #include "Firework.h"
+#include <array>
 
-#define COLORS  12
-#define COLORS2  6
-// Random number of value (a) with a variation of (b).
-#define MY_RAND(a,b)  (float(a) + ((float)g_rand.RandomReal1()-0.5f)*float(b))
+constexpr int kColorCount = 12;
+constexpr int kColorCount2 = 6;
 
-static GLfloat colors[COLORS][3]=    // Rainbow Of Colors
-{
+using ColorVec3 = std::array<GLfloat, 3>;
+
+// Rainbow of kColorCount
+constexpr std::array<ColorVec3, kColorCount> kRainbowkColorCount = {{
   {1.0f,0.10f,0.10f},{1.0f,0.50f,0.30f},{1.0f,1.0f,0.50f},{0.50f,1.0f,0.25f},
   {0.25f,1.0f,0.25f},{0.25f,1.0f,0.50f},{0.25f,1.0f,1.0f},{0.25f,0.50f,1.0f},
   {0.25f,0.25f,1.0f},{0.50f,0.25f,1.0f},{1.0f,0.25f,1.0f},{1.0f,0.25f,0.50f}
-};
+}};
 
-static GLfloat colors2[COLORS2][3]=    // Yellow/Orange/Bright colors
-{
+// Yellow/Orange/Bright kColorCount
+constexpr std::array<ColorVec3, kColorCount> kWarmkColorCount = {{
   {1.0f,0.5f,0.0f},{1.0f,0.75f,0.5f},{1.0f,1.0f,0.7f},
    {1.0f,1.0f,0.5f},{0.8f,0.8f,0.8f},{1.0f,1.0f,0.8f}
-};
+}};
 
-static CRandomMT  g_rand;
+RandomMT FireworkRocket::rand_;
 
-
-CFireworkRocket::CFireworkRocket() :
-  m_partFire(NULL),
-  m_partPink(NULL)
+FireworkRocket::FireworkRocket()
+  : is_exploding_(false)
 {
-  // Initiliaz random number generator.
-  g_rand.Randomize();
+  Create();
 }
 
-CFireworkRocket::~CFireworkRocket()
-{
-  delete [] m_partFire;
-}
-
-bool CFireworkRocket::Create()
+void FireworkRocket::Create()
 {
   float fAngle, fAngle2, fVelocity;
-  int i, j, nExplosionColor;
 
   // Create particles
-  m_partPink = new PARTICLE[EXPLOSION_PINK];
-  if (m_partPink == NULL)
-    return false;
-  m_partFire = new PARTICLE[EXPLOSION_PINK*EXPLOSION_FIRE];
-  if (m_partFire == NULL)
-    return false;
-
-  m_bExploding = false;
+  for (auto& part : part_pink_)
+    part.active = false;
+  for (auto& part : part_fire_)
+    part.active = false;
+  is_exploding_ = false;
 
   // Rocket's particle
-  m_partRocket.active = true;
-  m_partRocket.life = m_partRocket.ini_life = MY_RAND(2.5f, 3.0f);
-  m_partRocket.ini_size = 0.5f;
-  m_partRocket.weight = 2.0f;
-  fAngle = float(M_PI)/2.0f + (float)g_rand.RandomRange(-M_PI/4.0f, M_PI/4.0f);
-  m_partRocket.xi = (float)cos(fAngle)*13.0f;  // X Axis Speed And Direction
-  m_partRocket.yi = (float)sin(fAngle)*13.0f;  // Y Axis Speed And Direction
-  m_partRocket.zi = (float)sin(g_rand.RandomRange(-M_PI/8.0f, M_PI/8.0f))*13.0f;  // Z Axis Speed And Direction
-  m_partRocket.x = float(-30.0f + fAngle*60.0f/M_PI + g_rand.RandomRange(-10.0, 10.0));
-  m_partRocket.y = (float)g_rand.RandomRange(-24.0, -15.0);
-  m_partRocket.z = 0.0f;
-  m_partRocket.color[0] = m_partRocket.ini_color[0] = 1.0f;
-  m_partRocket.color[1] = m_partRocket.ini_color[1] = 0.8f;
-  m_partRocket.color[2] = m_partRocket.ini_color[2] = 0.2f;
+  part_rocket_.active = true;
+  part_rocket_.life = part_rocket_.ini_life = RandomApprox(2.5f, 3.0f);
+  part_rocket_.ini_size = 0.5f;
+  part_rocket_.weight = 2.0f;
+  fAngle = float(M_PI)/2.0f + (float)rand_.RandomRange(-M_PI/4.0f, M_PI/4.0f);
+  part_rocket_.xi = (float)cos(fAngle)*13.0f;  // X Axis Speed And Direction
+  part_rocket_.yi = (float)sin(fAngle)*13.0f;  // Y Axis Speed And Direction
+  part_rocket_.zi = (float)sin(rand_.RandomRange(-M_PI/8.0f, M_PI/8.0f))*13.0f;  // Z Axis Speed And Direction
+  part_rocket_.x = float(-30.0f + fAngle*60.0f/M_PI + rand_.RandomRange(-10.0, 10.0));
+  part_rocket_.y = (float)rand_.RandomRange(-24.0, -15.0);
+  part_rocket_.z = 0.0f;
+  part_rocket_.color[0] = part_rocket_.ini_color[0] = 1.0f;
+  part_rocket_.color[1] = part_rocket_.ini_color[1] = 0.8f;
+  part_rocket_.color[2] = part_rocket_.ini_color[2] = 0.2f;
 
   // Rocket's sparks
-  for (i=0; i<ROCKET_FIRE; ++i)
-    CreateRocketSpark(&m_partSpark[i]);
+  for (auto& part : part_spark_)
+    CreateRocketSpark(part);
 
   // Explosion's pink
-  nExplosionColor = g_rand.RandomInt()%COLORS;
-  for (i=0; i<EXPLOSION_PINK; ++i)
+  int nExplosionColor = rand_.RandomInt()%kColorCount;
+  for (int i=0; i<part_pink_.size(); ++i)
   {
-    memset(&m_partPink[i], 0, sizeof(PARTICLE));
-    m_partPink[i].active = false;
-    m_partPink[i].life = m_partPink[i].ini_life = MY_RAND(1.6f, 1.9f);
-    m_partPink[i].ini_size = 0.8f;
-    m_partPink[i].weight = 1.0f * m_partPink[i].ini_life;
-    fAngle  = float( g_rand.RandomReal2() * 2.0 * M_PI );
-    fAngle2 = float( g_rand.RandomReal2() * 2.0 * M_PI );
-    fVelocity = MY_RAND(7.2f, 11.1f);
-    m_partPink[i].xi = fVelocity * float(cos(fAngle2)*cos(fAngle));
-    m_partPink[i].yi = fVelocity * float(cos(fAngle2)*sin(fAngle));
-    m_partPink[i].zi = fVelocity * float(sin(fAngle2));
-    m_partPink[i].color[0] = m_partPink[i].ini_color[0] = colors[nExplosionColor][0];
-    m_partPink[i].color[1] = m_partPink[i].ini_color[1] = colors[nExplosionColor][1];
-    m_partPink[i].color[2] = m_partPink[i].ini_color[2] = colors[nExplosionColor][2];
+    Particle& part = part_pink_[i];
+    memset(&part, 0, sizeof(Particle));
+    part.active = false;
+    part.life = part.ini_life = RandomApprox(1.6f, 1.9f);
+    part.ini_size = 0.8f;
+    part.weight = 1.0f * part.ini_life;
+    fAngle  = float( rand_.RandomReal2() * 2.0 * M_PI );
+    fAngle2 = float( rand_.RandomReal2() * 2.0 * M_PI );
+    fVelocity = RandomApprox(7.2f, 11.1f);
+    part.xi = fVelocity * float(cos(fAngle2)*cos(fAngle));
+    part.yi = fVelocity * float(cos(fAngle2)*sin(fAngle));
+    part.zi = fVelocity * float(sin(fAngle2));
+    part.color[0] = part.ini_color[0] = kRainbowkColorCount[nExplosionColor][0];
+    part.color[1] = part.ini_color[1] = kRainbowkColorCount[nExplosionColor][1];
+    part.color[2] = part.ini_color[2] = kRainbowkColorCount[nExplosionColor][2];
 
     // Explosion's fire (trail following the pink bulbs).
-    for (j=0; j<EXPLOSION_FIRE; ++j)
+    for (int j=0; j<kExplosionFireCount; ++j)
     {
-      memcpy(&m_partFire[i*EXPLOSION_FIRE+j], &m_partPink[i], sizeof(PARTICLE));
-      m_partFire[i*EXPLOSION_FIRE+j].weight = 0.8f;
-      m_partFire[i*EXPLOSION_FIRE+j].xi = 0.0f;
-      m_partFire[i*EXPLOSION_FIRE+j].yi = 0.0f;
-      m_partFire[i*EXPLOSION_FIRE+j].zi = 0.0f;
+      memcpy(&part_fire_[i*kExplosionFireCount+j], &part, sizeof(Particle));
+      part_fire_[i*kExplosionFireCount+j].weight = 0.8f;
+      part_fire_[i*kExplosionFireCount+j].xi = 0.0f;
+      part_fire_[i*kExplosionFireCount+j].yi = 0.0f;
+      part_fire_[i*kExplosionFireCount+j].zi = 0.0f;
     }
   }
-
-  return true;
 }
 
-void CFireworkRocket::CreateRocketSpark(PARTICLE *pParticle)
+FireworkRocket::~FireworkRocket()
 {
-  int color = g_rand.RandomInt()%COLORS2;
-  float fRnd = float(g_rand.RandomReal2())*0.1f;
-
-  pParticle->active = true;
-  pParticle->life = pParticle->ini_life = MY_RAND(1.1f, 2.0f);
-  pParticle->ini_size = MY_RAND(0.2f, 0.3f);
-  pParticle->weight = 0.5f;
-  pParticle->x = MY_RAND(m_partRocket.x, 0.1f) - fRnd*m_partRocket.xi;
-   pParticle->y = MY_RAND(m_partRocket.y, 0.1f) - fRnd*m_partRocket.yi;
-   pParticle->z = MY_RAND(m_partRocket.z, 0.1f) - fRnd*m_partRocket.zi;
-  pParticle->xi = MY_RAND(0.0f, 0.8f);
-  pParticle->yi = MY_RAND(0.0f, 0.8f);
-  pParticle->zi = MY_RAND(0.0f, 0.8f);
-  pParticle->color[0] = pParticle->ini_color[0] = colors2[color][0];
-  pParticle->color[1] = pParticle->ini_color[1] = colors2[color][1];
-  pParticle->color[2] = pParticle->ini_color[2] = colors2[color][2];
 }
 
-bool CFireworkRocket::Render() const
+float FireworkRocket::RandomApprox(float a, float b)
 {
-  float  x, y, z;
-  int i;
+  // Random number of value (a) with a variation of (b).
+  return a + (rand_.RandomReal1() - 0.5f) * b;
+}
 
+void FireworkRocket::CreateRocketSpark(Particle &particle)
+{
+  int color = rand_.RandomInt() % kColorCount2;
+  float rnd = float(rand_.RandomReal2())*0.1f;
+
+  particle.active = true;
+  particle.life = particle.ini_life = RandomApprox(1.1f, 2.0f);
+  particle.ini_size = RandomApprox(0.2f, 0.3f);
+  particle.weight = 0.5f;
+  particle.x = RandomApprox(part_rocket_.x, 0.1f) - rnd*part_rocket_.xi;
+  particle.y = RandomApprox(part_rocket_.y, 0.1f) - rnd*part_rocket_.yi;
+  particle.z = RandomApprox(part_rocket_.z, 0.1f) - rnd*part_rocket_.zi;
+  particle.xi = RandomApprox(0.0f, 0.8f);
+  particle.yi = RandomApprox(0.0f, 0.8f);
+  particle.zi = RandomApprox(0.0f, 0.8f);
+  particle.color[0] = particle.ini_color[0] = kWarmkColorCount[color][0];
+  particle.color[1] = particle.ini_color[1] = kWarmkColorCount[color][1];
+  particle.color[2] = particle.ini_color[2] = kWarmkColorCount[color][2];
+}
+
+bool FireworkRocket::Render() const
+{
   // Render Rocket's sparks
-  for (i=0; i<ROCKET_FIRE; ++i)            // i Through All The Particles
+  for (auto& part : part_spark_)
   {
-    if (m_partSpark[i].active)            // If The Particle Is Active
-    {
-      x = m_partSpark[i].x;            // Grab Our Particle X Position
-      y = m_partSpark[i].y;            // Grab Our Particle Y Position
-      z = m_partSpark[i].z;            // Grab Our Particle Z Position
+    if (!part.active)            // If The Particle Is Active
+      continue;
 
-      // Draw The Particle Using Our RGB Values, Fade The Particle Based On It's Life
-      glColor3fv(m_partSpark[i].color);
+    // Draw The Particle Using Our RGB Values, Fade The Particle Based On It's Life
+    glColor3fv(part.color);
+
+    glBegin(GL_TRIANGLE_STRIP);            // Build Quad From A Triangle Strip
+      glTexCoord2f(1,1); glVertex3f(part.x+part.size, part.y+part.size, part.z); // Top Right
+      glTexCoord2f(0,1); glVertex3f(part.x-part.size, part.y+part.size, part.z); // Top Left
+      glTexCoord2f(1,0); glVertex3f(part.x+part.size, part.y-part.size, part.z); // Bottom Right
+      glTexCoord2f(0,0); glVertex3f(part.x-part.size, part.y-part.size, part.z); // Bottom Left
+    glEnd();                    // Done Building Triangle Strip
+  }
+
+  // Render explosion
+  if (is_exploding_)
+  {
+    for (auto& part : part_pink_)
+    {
+      if (!part.active)
+        continue;
+
+      glColor3fv(part.color);
+
+      glBegin(GL_TRIANGLE_STRIP);
+        glTexCoord2f(1,1); glVertex3f(part.x+part.size, part.y+part.size, part.z); // Top Right
+        glTexCoord2f(0,1); glVertex3f(part.x-part.size, part.y+part.size, part.z); // Top Left
+        glTexCoord2f(1,0); glVertex3f(part.x+part.size, part.y-part.size, part.z); // Bottom Right
+        glTexCoord2f(0,0); glVertex3f(part.x-part.size, part.y-part.size, part.z); // Bottom Left
+      glEnd();
+    }
+
+    for (auto& part : part_fire_)
+    {
+      if (!part.active)
+        continue;
+
+      glColor3fv(part.color);
 
       glBegin(GL_TRIANGLE_STRIP);            // Build Quad From A Triangle Strip
-        glTexCoord2f(1,1); glVertex3f(x+m_partSpark[i].size,y+m_partSpark[i].size,z); // Top Right
-        glTexCoord2f(0,1); glVertex3f(x-m_partSpark[i].size,y+m_partSpark[i].size,z); // Top Left
-        glTexCoord2f(1,0); glVertex3f(x+m_partSpark[i].size,y-m_partSpark[i].size,z); // Bottom Right
-        glTexCoord2f(0,0); glVertex3f(x-m_partSpark[i].size,y-m_partSpark[i].size,z); // Bottom Left
+        glTexCoord2f(1,1); glVertex3f(part.x+part.size, part.y+part.size, part.z); // Top Right
+        glTexCoord2f(0,1); glVertex3f(part.x-part.size, part.y+part.size, part.z); // Top Left
+        glTexCoord2f(1,0); glVertex3f(part.x+part.size, part.y-part.size, part.z); // Bottom Right
+        glTexCoord2f(0,0); glVertex3f(part.x-part.size, part.y-part.size, part.z); // Bottom Left
       glEnd();                    // Done Building Triangle Strip
     }
   }
 
-  // Render explosion
-  if (m_bExploding)
-  {
-    for (i=0; i<EXPLOSION_PINK; ++i)
-    {
-      if (m_partPink[i].active)
-      {
-        glColor3fv(m_partPink[i].color);
-
-        x = m_partPink[i].x;
-        y = m_partPink[i].y;
-        z = m_partPink[i].z;
-
-        glBegin(GL_TRIANGLE_STRIP);
-          glTexCoord2f(1,1); glVertex3f(x+m_partPink[i].size,y+m_partPink[i].size,z); // Top Right
-          glTexCoord2f(0,1); glVertex3f(x-m_partPink[i].size,y+m_partPink[i].size,z); // Top Left
-          glTexCoord2f(1,0); glVertex3f(x+m_partPink[i].size,y-m_partPink[i].size,z); // Bottom Right
-          glTexCoord2f(0,0); glVertex3f(x-m_partPink[i].size,y-m_partPink[i].size,z); // Bottom Left
-        glEnd();
-      }
-    }
-
-    for (i=0; i<EXPLOSION_PINK*EXPLOSION_FIRE; ++i)
-    {
-      if (m_partFire[i].active)
-      {
-        glColor3fv(m_partFire[i].color);
-
-        x = m_partFire[i].x;
-        y = m_partFire[i].y;
-        z = m_partFire[i].z;
-
-        glBegin(GL_TRIANGLE_STRIP);            // Build Quad From A Triangle Strip
-          glTexCoord2f(1,1); glVertex3f(x+m_partFire[i].size,y+m_partFire[i].size,z); // Top Right
-          glTexCoord2f(0,1); glVertex3f(x-m_partFire[i].size,y+m_partFire[i].size,z); // Top Left
-          glTexCoord2f(1,0); glVertex3f(x+m_partFire[i].size,y-m_partFire[i].size,z); // Bottom Right
-          glTexCoord2f(0,0); glVertex3f(x-m_partFire[i].size,y-m_partFire[i].size,z); // Bottom Left
-        glEnd();                    // Done Building Triangle Strip
-      }
-    }
-  }
-
   return true;
 }
 
-bool CFireworkRocket::Update(float dt)
+bool FireworkRocket::Update(float dt)
 {
   static float  t = 0.0f;
-  float      fLife,
-          fAlpha;
-  bool      bEndExplode = true;
-  int  i;
+  float fLife;
+  float fAlpha;
+  bool bEndExplode = true;
 
   t += dt;
 
   // Update rocket
-  if (m_partRocket.active)
+  if (part_rocket_.active)
   {
-    m_partRocket.x += m_partRocket.xi*dt;
-    m_partRocket.y += m_partRocket.yi*dt;
-    m_partRocket.z += m_partRocket.zi*dt;
+    part_rocket_.x += part_rocket_.xi*dt;
+    part_rocket_.y += part_rocket_.yi*dt;
+    part_rocket_.z += part_rocket_.zi*dt;
 
-    if (m_partRocket.life > 0.0f)
+    if (part_rocket_.life > 0.0f)
     {
-      fLife = m_partRocket.life / m_partRocket.ini_life;
+      fLife = part_rocket_.life / part_rocket_.ini_life;
 
-      m_partRocket.xi += 0.03f*sin(t*m_partRocket.ini_life*4.0f);
-      m_partRocket.yi += 0.03f*cos(t*m_partRocket.ini_life*2.0f) - m_partRocket.weight*dt;
+      part_rocket_.xi += 0.03f*sin(t*part_rocket_.ini_life*4.0f);
+      part_rocket_.yi += 0.03f*cos(t*part_rocket_.ini_life*2.0f) - part_rocket_.weight*dt;
     }
 
-    m_partRocket.life -= dt;
-    if (m_partRocket.life < -0.3f)
+    part_rocket_.life -= dt;
+    if (part_rocket_.life < -0.3f)
     {
-      m_partRocket.active = false;
+      part_rocket_.active = false;
       Explode();
     }
   }
 
   // Update sparks
-  for (i=0; i<ROCKET_FIRE; ++i)          // i Through All The Particles
+  for (int i=0; i<part_spark_.size(); ++i)
   {
-    if (!m_partSpark[i].active)            // If The Particle Is Active
+    Particle& part = part_spark_[i];
+    if (!part.active)            // If The Particle Is Active
       continue;
 
-    fLife = m_partSpark[i].life / m_partSpark[i].ini_life;
+    fLife = part.life / part.ini_life;
 
-    m_partSpark[i].x += m_partSpark[i].xi*fLife*fLife*dt;  // Move On The X Axis By X Speed
-    m_partSpark[i].y += m_partSpark[i].yi*fLife*fLife*dt;  // Move On The Y Axis By Y Speed
-    m_partSpark[i].z += m_partSpark[i].zi*fLife*fLife*dt;  // Move On The Z Axis By Z Speed
+    part.x += part.xi*fLife*fLife*dt;  // Move On The X Axis By X Speed
+    part.y += part.yi*fLife*fLife*dt;  // Move On The Y Axis By Y Speed
+    part.z += part.zi*fLife*fLife*dt;  // Move On The Z Axis By Z Speed
 
-    m_partSpark[i].yi -= float(m_partSpark[i].weight*dt);
-    m_partSpark[i].size = m_partSpark[i].ini_size * fLife*fLife;
+    part.yi -= float(part.weight*dt);
+    part.size = part.ini_size * fLife*fLife;
     if (fLife < 0.2f)
     {
       fAlpha = fLife*5.0f;
-      m_partSpark[i].color[0] = m_partSpark[i].ini_color[0] * fAlpha;
-      m_partSpark[i].color[1] = m_partSpark[i].ini_color[1] * fAlpha;
-      m_partSpark[i].color[2] = m_partSpark[i].ini_color[2] * fAlpha;
+      part.color[0] = part.ini_color[0] * fAlpha;
+      part.color[1] = part.ini_color[1] * fAlpha;
+      part.color[2] = part.ini_color[2] * fAlpha;
     }
 
-    m_partSpark[i].life -= dt;
-    if (m_partSpark[i].life < 0.0f)
+    part.life -= dt;
+    if (part.life < 0.0f)
     {
       // If Particle Is Burned Out
-      if (m_partRocket.life < float(i)/ROCKET_FIRE)
-        m_partSpark[i].active = false;
+      if (part_rocket_.life < float(i)/kRocketFireCount)
+        part.active = false;
       else
-        CreateRocketSpark(&m_partSpark[i]);
+        CreateRocketSpark(part);
     }
   }
 
   // Update explosion particles
-  if (m_bExploding)
+  if (is_exploding_)
   {
-    for (i=0; i<EXPLOSION_PINK; ++i)
-       {
-      if (m_partPink[i].active)
+    for (int i=0; i<part_pink_.size(); ++i)
+    {
+      Particle& part_pink = part_pink_[i];
+      if (!part_pink.active)
+        continue;
+    
+      fLife = part_pink.life / part_pink.ini_life;
+
+      part_pink.x += part_pink.xi*fLife*fLife*dt;
+      part_pink.y += part_pink.yi*fLife*fLife*dt;
+      part_pink.z += part_pink.zi*fLife*fLife*dt;
+
+      part_pink.yi -= part_pink.weight*dt;
+      part_pink.size = part_pink.ini_size * fLife*fLife;
+      if (fLife < 0.2f)
       {
-        fLife = m_partPink[i].life / m_partPink[i].ini_life;
+        fAlpha = fLife*5.0f;
+        part_pink.color[0] = part_pink.ini_color[0] * fAlpha;
+        part_pink.color[1] = part_pink.ini_color[1] * fAlpha;
+        part_pink.color[2] = part_pink.ini_color[2] * fAlpha;
+      }
 
-        m_partPink[i].x += m_partPink[i].xi*fLife*fLife*dt;
-        m_partPink[i].y += m_partPink[i].yi*fLife*fLife*dt;
-        m_partPink[i].z += m_partPink[i].zi*fLife*fLife*dt;
+      part_pink.life -= (float) dt;
+      if (part_pink.life < 0.0f)
+        part_pink.active = false;
 
-        m_partPink[i].yi -= m_partPink[i].weight*dt;
-        m_partPink[i].size = m_partPink[i].ini_size * fLife*fLife;
-        if (fLife < 0.2f)
-        {
-          fAlpha = fLife*5.0f;
-          m_partPink[i].color[0] = m_partPink[i].ini_color[0] * fAlpha;
-          m_partPink[i].color[1] = m_partPink[i].ini_color[1] * fAlpha;
-          m_partPink[i].color[2] = m_partPink[i].ini_color[2] * fAlpha;
-        }
-
-        m_partPink[i].life -= (float) dt;
-        if (m_partPink[i].life < 0.0f)
-          m_partPink[i].active = false;
-
-        // Create fire trail
-        int j = int(fLife*(EXPLOSION_FIRE-2)+1 + cos(t*10.0f));
-        if (!m_partFire[i*EXPLOSION_FIRE+j].active)
-        {
-          m_partFire[i*EXPLOSION_FIRE+j].active = true;
-          m_partFire[i*EXPLOSION_FIRE+j].life = 0.7f * m_partPink[i].life;
-          m_partFire[i*EXPLOSION_FIRE+j].x = m_partPink[i].x;
-          m_partFire[i*EXPLOSION_FIRE+j].y = m_partPink[i].y;
-          m_partFire[i*EXPLOSION_FIRE+j].z = m_partPink[i].z;
-        }
+      // Create fire trail
+      int j = int(fLife*(kExplosionFireCount-2)+1 + cos(t*10.0f));
+      Particle& part_fire = part_fire_[i*kExplosionFireCount + j];
+      if (!part_fire.active)
+      {
+        part_fire.active = true;
+        part_fire.life = 0.7f * part_pink.life;
+        part_fire.x = part_pink.x;
+        part_fire.y = part_pink.y;
+        part_fire.z = part_pink.z;
       }
     }
 
-    for (i=0; i<EXPLOSION_PINK*EXPLOSION_FIRE; ++i)
-       {
-      if (m_partFire[i].active)              // If The Particle Is Active
+    for (auto& part : part_fire_)
+    {
+      if (part.active)              // If The Particle Is Active
       {
         bEndExplode = false;
 
-        fLife = m_partFire[i].life / m_partFire[i].ini_life;
+        fLife = part.life / part.ini_life;
 
-        m_partFire[i].x += m_partFire[i].xi*dt;
-        m_partFire[i].y += m_partFire[i].yi*dt;
-        m_partFire[i].z += m_partFire[i].zi*dt;
+        part.x += part.xi*dt;
+        part.y += part.yi*dt;
+        part.z += part.zi*dt;
 
-        m_partFire[i].yi -= m_partFire[i].weight*dt;
-        m_partFire[i].size = m_partFire[i].ini_size * fLife*fLife;
+        part.yi -= part.weight*dt;
+        part.size = part.ini_size * fLife*fLife;
         if (fLife < 0.2f)
         {
           fAlpha = fLife*5.0f;
-          m_partFire[i].color[0] = m_partFire[i].ini_color[0] * fAlpha;
-          m_partFire[i].color[1] = m_partFire[i].ini_color[1] * fAlpha;
-          m_partFire[i].color[2] = m_partFire[i].ini_color[2] * fAlpha;
+          part.color[0] = part.ini_color[0] * fAlpha;
+          part.color[1] = part.ini_color[1] * fAlpha;
+          part.color[2] = part.ini_color[2] * fAlpha;
         }
 
-        m_partFire[i].life -= dt;
-        if (m_partFire[i].life < 0.0f)          // If Particle Is Burned Out
-          m_partFire[i].active = false;
+        part.life -= dt;
+        if (part.life < 0.0f)          // If Particle Is Burned Out
+          part.active = false;
       }
     }
 
@@ -362,15 +347,57 @@ bool CFireworkRocket::Update(float dt)
   return true;
 }
 
-void CFireworkRocket::Explode()
+void FireworkRocket::Explode()
 {
-  for (int i=0; i<EXPLOSION_PINK; ++i)
+  for (auto& part : part_pink_)
   {
-    m_partPink[i].active = true;
-    m_partPink[i].x = m_partRocket.x;
-    m_partPink[i].y = m_partRocket.y;
-    m_partPink[i].z = m_partRocket.z;
+    part.active = true;
+    part.x = part_rocket_.x;
+    part.y = part_rocket_.y;
+    part.z = part_rocket_.z;
   }
 
-  m_bExploding = true;
+  is_exploding_ = true;
+}
+
+Firework::Firework(GLuint texture)
+  : texture_(texture)
+{
+}
+
+void Firework::Update(float dt)
+{
+  for (FireworkRocket& rocket : rockets_)
+    rocket.Update(dt);
+}
+
+void Firework::Render() const
+{
+  // Init GL
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glBlendFunc(GL_ONE, GL_ONE);  // Type Of Blending To Perform
+  if (texture_ != 0)
+    glBindTexture(GL_TEXTURE_2D, texture_);  // Select Our Texture
+
+  // Draw fireword
+  glLoadIdentity();
+  glPushAttrib(GL_ENABLE_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glEnable(GL_TEXTURE_2D);
+    glTranslatef(0.0f, 0.0f, -40.0f);
+    for (const FireworkRocket& rocket : rockets_)
+      rocket.Render();
+  glPopAttrib();
+
+  glPopAttrib();
+}
+
+bool Firework::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam)
+{
+  if (nEvent == eventKeyDown) {
+    is_done_ = true;
+    return true;
+  }
+  return false;
 }

@@ -20,33 +20,25 @@
  * Web : www.beroux.com
  */
 
-#ifndef INC_PADDLE_H_
-#define INC_PADDLE_H_
-
-#ifdef _WIN32
 #pragma once
-#endif
 
 #include "IObject.h"
 
-class CPaddle : public IObject
+class Paddle : public IObject
 {
 public:
 // Constructor
-  CPaddle(bool bLeftPaddle);
+  Paddle(bool bLeftPaddle);
 
 // Implementation of IObject.
-  // Initialize the object.
-  bool Initialize();
-
   // Update the object.
-  void Update(float fTime);
+  void Update(float fTime) override;
 
   // Render the object.
-  void Render() const;
+  void Render() const override;
 
   // Process event.
-  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam);
+  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
 
 // Attributes
   static const float GetWidth() {
@@ -82,6 +74,3 @@ protected:
       m_fIlluminate;
   GLuint  m_nGLPaddle;
 };
-
-#endif
-
