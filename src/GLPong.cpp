@@ -28,7 +28,6 @@
 
 // GLPong.cpp : Defines the entry point for the application.
 //
-
 #include "GLPong.h"
 
 #include <filesystem>
@@ -36,6 +35,7 @@
 
 #include "AiPaddle.h"
 #include "Paddle.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -50,10 +50,14 @@ static std::filesystem::path GetResourcePath(const std::string& relative) {
   return std::filesystem::path(appdir) / relative;
 }
 
-static bool UserInputBoolean() {
+static bool UserInputBoolean(bool default_value) {
+#ifdef __EMSCRIPTEN__
+  return default_value;
+#else
   std::string input;
   std::cin >> input;
   return !input.empty() && tolower(input[0]) == 'y';
+#endif
 }
 
 // Resize And Initialize The GL Window
@@ -125,14 +129,14 @@ GLPong::GLPong() {
 
   // Full-screen?
   std::cout << "Full-screen mode [Y/N]?";
-  if (UserInputBoolean()) {
+  if (UserInputBoolean(false)) {
     videoFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;  // Enable full-screen mode
     SDL_ShowCursor(SDL_DISABLE);
   }
 
   // Versus AI?
   std::cout << "Play against AI [Y/N]?";
-  bool vs_ai = UserInputBoolean();
+  bool vs_ai = UserInputBoolean(true);
 
   // Sets up OpenGL double buffering
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -169,6 +173,10 @@ GLPong::GLPong() {
 
   // resize the initial window
   ReSizeGLScene(kWidth, kHeight);
+
+#ifdef __EMSCRIPTEN__
+  RegalMakeCurrent((RegalSystemContext)1);
+#endif
 }
 
 GLPong::~GLPong() {
@@ -260,6 +268,10 @@ void GLPong::Draw() {
 bool GLPong::Run() {
   // Main loop
   last_draw_ticks_ = prev_ticks_ = SDL_GetTicks();
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop_arg([](void* arg) { static_cast<GLPong*>(arg)->Draw(); }, this,
+                               /*fps=*/0, /*simulate_infinite_loop=*/1);
+#else
   while (game_is_still_running_) {
     Draw();
 
@@ -268,6 +280,7 @@ bool GLPong::Run() {
     else
       SDL_Delay(100);
   }
+#endif
 
   // End
   return true;

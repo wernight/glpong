@@ -1,10 +1,14 @@
 services:
   glpong:
     build: .
+    ports:
+      - 0.0.0.0:8080:8080
     volumes:
       - ./:/code/
       - build-cache:/tmp/glpong
       - appimage-cache:/tmp/GLPong.AppDir
+      - emcache:/opt/emscripten/upstream/emscripten/cache/
 volumes:
   build-cache:
   appimage-cache:
+  emcache:
