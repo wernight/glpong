@@ -10,7 +10,7 @@ RUN set -x \
         libglew-dev \
         libglu1-mesa-dev \
         libsdl2-dev \
-        libsdl2-image-dev \
+        libstb-dev \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 

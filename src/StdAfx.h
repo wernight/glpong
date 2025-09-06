@@ -25,8 +25,7 @@
 // are changed infrequently
 //
 
-#ifndef __STDAFX_H__
-#define __STDAFX_H__
+#pragma once
 
 #include <GL/glew.h>
 
@@ -35,15 +34,11 @@
 #pragma comment(lib, "GLu32.lib")     // The GLu32.lib Library...
 #pragma comment(lib, "SDL2main.lib")
 #pragma comment(lib, "SDL2.lib")
-#pragma comment(lib, "SDL2_image.lib")
 #endif
 
 #include <GL/glu.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_opengl.h>
-
-// #include <stdio.h>
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -59,14 +54,4 @@ typedef unsigned long DWORD;
 // Constants
 #ifndef M_PI
 #define M_PI 3.1415928
-#endif
-
-#ifdef _DEBUG
-#define ASSERT(f) assert(f)
-#define VERIFY(f) ASSERT(f)
-#else
-#define ASSERT(f) ((void)0)
-#define VERIFY(f) ((void)(f))
-#endif
-
 #endif

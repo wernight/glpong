@@ -37,8 +37,10 @@
 #include "AiPaddle.h"
 #include "Paddle.h"
 #include "StdAfx.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
 
-constexpr int SCREEN_FREQUENCY = 60;  // 60Hz
+constexpr int kScreenFrequency = 60;  // 60Hz
 
 static std::filesystem::path GetResourcePath(const std::string& relative) {
   const char* appdir = std::getenv("APPDIR");
@@ -72,56 +74,35 @@ static void ReSizeGLScene(GLsizei width, GLsizei height) {
 
 // Load Bitmaps And Convert To Textures
 static GLuint LoadGLTextures(const char* filename) {
-  // Create storage space for the texture
-  SDL_Surface* sdl_surface;
-
-  sdl_surface = IMG_Load(filename);
-
-  // Load The Bitmap, Check For Errors.
-  if (sdl_surface == nullptr) {
-    std::cerr << "Failed to load texture: " << filename << std::endl;
+  int width, height, channels;
+  unsigned char* data = stbi_load(filename, &width, &height, &channels, 0);
+  if (!data) {
+    std::cerr << "Failed to load image: " << filename << "\n";
     return 0;
+  }
+
+  GLenum format;
+  if (channels == 1)
+    format = GL_LUMINANCE;
+  else if (channels == 3)
+    format = GL_RGB;
+  else if (channels == 4)
+    format = GL_RGBA;
+  else {
+    stbi_image_free(data);
+    throw std::runtime_error("Unsupported channel count");
   }
 
   GLuint gl_texture;
   glGenTextures(1, &gl_texture);
 
-  GLint ncolors = sdl_surface->format->BytesPerPixel;
-  GLenum texture_format;
-  switch (ncolors) {
-    case 1:  // Alpha-only
-      texture_format = GL_LUMINANCE;
-      break;
-
-    case 3:  // R, G, and B channels
-      if (sdl_surface->format->Rmask == 0x000000ff)
-        texture_format = GL_RGB;
-      else
-        texture_format = GL_BGR;
-      break;
-
-    case 4:  // R, G, B, and A channels
-      if (sdl_surface->format->Rmask == 0x000000ff)
-        texture_format = GL_RGBA;
-      else
-        texture_format = GL_BGRA;
-      break;
-
-    default:
-      // this is not a supported image format
-      std::cerr << "Unsupported image format: " << ncolors << std::endl;
-      return 0;
-  }
-
   // Typical Texture Generation Using Data From The TGA ( CHANGE )
   glBindTexture(GL_TEXTURE_2D, gl_texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, ncolors, sdl_surface->w, sdl_surface->h, 0, texture_format,
-               GL_UNSIGNED_BYTE, sdl_surface->pixels);
+  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  // Free up any memory we may have used
-  SDL_FreeSurface(sdl_surface);
+  stbi_image_free(data);
 
   return gl_texture;
 }
@@ -137,7 +118,6 @@ GLPong::GLPong() {
     std::cerr << "Video initialization failed: " << SDL_GetError() << std::endl;
     throw std::runtime_error("Video initialization failed");
   }
-  IMG_Init(IMG_INIT_PNG);
 
   // the flags to pass to SDL_SetVideoMode
   Uint32 videoFlags;                   // Flags to pass to SDL_SetVideoMode
@@ -195,7 +175,6 @@ GLPong::GLPong() {
 GLPong::~GLPong() {
   if (gl_context_) SDL_GL_DeleteContext(gl_context_);
   if (sdl_window_ != nullptr) SDL_DestroyWindow(sdl_window_);
-  IMG_Quit();
   SDL_Quit();
 }
 
@@ -269,7 +248,7 @@ void GLPong::Draw() {
   }
 
   // Render scene
-  if (cur_ticks - last_draw_ticks_ > 1000 / SCREEN_FREQUENCY) {
+  if (cur_ticks - last_draw_ticks_ > 1000 / kScreenFrequency) {
     last_draw_ticks_ = cur_ticks;
     DrawGLScene();
     SDL_GL_SwapWindow(sdl_window_);

@@ -10,5 +10,8 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
     },
+    "[dockerfile]": {
+        "editor.formatOnSave": false,
+    },
     "editor.formatOnSave": true
 }
