@@ -174,14 +174,8 @@ Ball::~Ball() {
   if (particles_vbo_) glDeleteBuffers(1, &particles_vbo_);
 }
 
-/** Update the object.
- * @param fTime    Time elapsed between two updates.
- */
-void Ball::Update(float fTime) {
-  Vector2D new_ball_pos(ball_position_ + ball_speed_ * fTime);
-  double dAngle, dSpeed;
-  int i;
-
+void Ball::Update(float dt) {
+  Vector2D new_ball_pos(ball_position_ + ball_speed_ * dt);
   // Bounce top/bottom
   if (new_ball_pos.y + kBallRadius > Board::GetTop()) {
     ball_speed_.y = -ball_speed_.y;
@@ -191,53 +185,46 @@ void Ball::Update(float fTime) {
     new_ball_pos.y = 2.0f * (Board::GetBottom() + kBallRadius) - new_ball_pos.y;
   }
 
-  // Left paddle collision detection.
   if (new_ball_pos.x + kBallRadius > Board::GetLeft() - Paddle::GetWidth()) {
+    // Left paddle collision detection.
     // y = a*x + b
-    float a = ball_speed_.y / ball_speed_.x, b = ball_position_.y - a * ball_position_.x, y;
+    float a = ball_speed_.y / ball_speed_.x;
+    float b = ball_position_.y - a * ball_position_.x;
+    float y = a * (Board::GetLeft() - Paddle::GetWidth() - kBallRadius) + b;
 
-    // Bounce on paddle?
     if (ball_position_.x + kBallRadius <= Board::GetLeft() - Paddle::GetWidth() &&
-        (y = a * (Board::GetLeft() - Paddle::GetWidth() - kBallRadius) + b) - kBallRadius <=
-            left_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
+        y - kBallRadius <= left_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
         y + kBallRadius >= left_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f) {
       // Illuminate.
       left_paddle_->Illuminate();
-      // Bounce.
+      // Bounce on paddle.
       new_ball_pos.x =
           2.0f * (Board::GetLeft() - Paddle::GetWidth() - kBallRadius) - new_ball_pos.x;
       // Bouce angle.
-      dAngle = (left_paddle_->GetPosition() - new_ball_pos.y) * M_PI / 4.0f /
-                   (Paddle::GetHeight() / 2.0f) +
-               M_PI;
+      double angle = (left_paddle_->GetPosition() - new_ball_pos.y) * M_PI / 4.0f /
+                         (Paddle::GetHeight() / 2.0f) +
+                     M_PI;
 
       // Increase speed
-      dSpeed = ball_speed_.Norm() + kBallSpeedIncrease;
-      ball_speed_.x = float(cos(dAngle) * dSpeed);
-      ball_speed_.y = float(sin(dAngle) * dSpeed);
-    }
-    /*    // Bounce on corners?
-        else if (HitPoint(ball_position_, new_ball_pos, ball_speed_,
-       Vector2D(Board::GetLeft()-Paddle::GetWidth(),
-       left_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) || HitPoint(ball_position_,
-       new_ball_pos, ball_speed_, Vector2D(Board::GetLeft()-Paddle::GetWidth(),
-       left_paddle_->GetPosition()-Paddle::GetHeight()*0.5f))) { }*/
-    // Score?
-    else if (new_ball_pos.x + kBallRadius > Board::GetLeft()) {
+      double speed = ball_speed_.Norm() + kBallSpeedIncrease;
+      ball_speed_.x = float(cos(angle) * speed);
+      ball_speed_.y = float(sin(angle) * speed);
+    } else if (new_ball_pos.x + kBallRadius > Board::GetLeft()) {
+      // Score
       board_->Score(true);
       NewBall(true);
       new_ball_pos = ball_position_;
     }
-  }
-  // Right paddle collision detection.
-  else if (new_ball_pos.x - kBallRadius < Board::GetRight() + Paddle::GetWidth()) {
+  } else if (new_ball_pos.x - kBallRadius < Board::GetRight() + Paddle::GetWidth()) {
+    // Right paddle collision detection.
     // y = a*x + b
-    float a = ball_speed_.y / ball_speed_.x, b = ball_position_.y - a * ball_position_.x, y;
+    float a = ball_speed_.y / ball_speed_.x;
+    float b = ball_position_.y - a * ball_position_.x;
+    float y = a * (Board::GetRight() + Paddle::GetWidth() + kBallRadius) + b;
 
     // Bounce on paddle?
     if (ball_position_.x - kBallRadius >= Board::GetRight() + Paddle::GetWidth() &&
-        (y = a * (Board::GetRight() + Paddle::GetWidth() + kBallRadius) + b) - kBallRadius <=
-            right_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
+        y - kBallRadius <= right_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
         y + kBallRadius >= right_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f) {
       // Illuminate.
       right_paddle_->Illuminate();
@@ -245,22 +232,15 @@ void Ball::Update(float fTime) {
       new_ball_pos.x =
           2.0f * (Board::GetRight() + Paddle::GetWidth() + kBallRadius) - new_ball_pos.x;
       // Bouce angle.
-      dAngle = (new_ball_pos.y - right_paddle_->GetPosition()) * M_PI / 4.0f /
-               (Paddle::GetHeight() / 2.0f);
+      double angle = (new_ball_pos.y - right_paddle_->GetPosition()) * M_PI / 4.0f /
+                     (Paddle::GetHeight() / 2.0f);
 
       // Increase speed
-      dSpeed = ball_speed_.Norm() + kBallSpeedIncrease;
-      ball_speed_.x = float(cos(dAngle) * dSpeed);
-      ball_speed_.y = float(sin(dAngle) * dSpeed);
-    }
-    /*    // Bounce on corners?
-        else if (HitPoint(ball_position_, new_ball_pos, ball_speed_,
-       Vector2D(Board::GetRight()+Paddle::GetWidth(),
-       right_paddle_->GetPosition()+Paddle::GetHeight()*0.5f)) || HitPoint(ball_position_,
-       new_ball_pos, ball_speed_, Vector2D(Board::GetRight()+Paddle::GetWidth(),
-       right_paddle_->GetPosition()-Paddle::GetHeight()*0.5f))) { }*/
-    // Score?
-    else if (new_ball_pos.x - kBallRadius < Board::GetRight()) {
+      double speed = ball_speed_.Norm() + kBallSpeedIncrease;
+      ball_speed_.x = float(cos(angle) * speed);
+      ball_speed_.y = float(sin(angle) * speed);
+    } else if (new_ball_pos.x - kBallRadius < Board::GetRight()) {
+      // Score
       board_->Score(false);
       NewBall(false);
       new_ball_pos = ball_position_;
@@ -273,7 +253,7 @@ void Ball::Update(float fTime) {
   // Particles.
   for (auto &part : particles_) {
     // Reduce Particles Life By 'Fade'
-    part.life -= part.fade * fTime;
+    part.life -= part.fade * dt;
 
     // Regenerate if Particle is Burned Out
     if (part.life >= 0.0f) continue;
@@ -346,67 +326,17 @@ void Ball::Render() const {
 
 bool Ball::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) { return false; }
 
-void Ball::NewBall(bool bGoToLeft) {
+void Ball::NewBall(bool go_to_left) {
   // Selects a random angle.
   float angle;
   do angle = (float)rand_.RandomRange(-kBallMaxAngle, +kBallMaxAngle);
   while (fabs(angle) < kBallMinAngle);
 
-  if (bGoToLeft) {
+  if (go_to_left) {
     angle += float(M_PI);
     ball_position_.x = Board::GetLeft() - Paddle::GetWidth();
   } else
     ball_position_.x = Board::GetRight() + Paddle::GetWidth();
   ball_speed_.x = (float)cos(angle) * kBallSpeed;
   ball_speed_.y = (float)sin(angle) * kBallSpeed;
-}
-
-inline bool Ball::HitPoint(Vector2D &old_pos, Vector2D &new_pos, Vector2D &speed, Vector2D &a_pos) {
-  // Position where distance from line y=a*x+b to the point A is the shortest.
-  float a = speed.y / speed.x;
-  float b = old_pos.y - a * old_pos.x;
-  float t0 = -a * a * (a_pos.x * a_pos.x - kBallRadius * kBallRadius) -
-             2.0f * a * (b - a_pos.y) * a_pos.x - b * b + 2.0f * b * a_pos.y - a_pos.y * a_pos.y +
-             kBallRadius * kBallRadius;
-  // Check if hit.
-  if (t0 < 0) return false;
-  // Find hit position.
-  float t1 = sqrt(t0), t2 = -a * (b - a_pos.y) + a_pos.x, t3 = a * a + 1, x1 = (+t1 + t2) / t3,
-        x2 = (-t1 + t2) / t3, x;
-  // Hit position is one of the two x coordiantes.
-  if (fabs(old_pos.x - x1) < fabs(old_pos.x - x2))
-    x = x1;
-  else
-    x = x2;
-  // Is hit position is between old_pos and new_pos?
-  if (!(old_pos.x <= x && x <= new_pos.x || new_pos.x <= x && x <= old_pos.x)) return false;
-
-  // The shortest vector from A to the line defined by y=a*x+b.
-  Vector2D vect(x - a_pos.x, a * x + b - a_pos.y);
-
-  // Update speed vector.
-  speed = vect * ((speed.Norm() + kBallSpeedIncrease) / vect.Norm());
-  // Update position.
-  //! TODO
-  new_pos = old_pos;
-  // Temporary position version that gives bad results on slow machines.
-  /*
-  R is the new direction vector
-  I is the old direction vector before the collision
-  N is the Normal at the collision point
-
-  The new vector R is calculated as follows:
-
-  R= 2*(-I dot N)*N + I
-
-  The restriction is that the I and N vectors have to be unit vectors. The velocity vector as used
-  in our examples represents speed and direction. Therefore it can not be plugged into the equation
-  in the place of I, without any transformation. The speed has to be extracted. The speed for such a
-  velocity vector is extracted finding the magnitude of the vector. Once the magnitude is found, the
-  vector can be transformed to a unit vector and plugged into the equation giving the reflection
-  vector R. R shows us now the direction, of the reflected ray, but in order to be used as a
-  velocity vector it must also incorporate the speed. Therefore it gets, multiplied with the
-  magnitude of the original ray, thus resulting in the correct velocity vector.
-  */
-  return true;
 }

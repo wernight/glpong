@@ -8,6 +8,7 @@ RUN set -x \
         cmake \
         curl \
         libglew-dev \
+        libglm-dev \
         libglu1-mesa-dev \
         libsdl2-dev \
         libstb-dev \
