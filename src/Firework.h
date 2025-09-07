@@ -23,6 +23,7 @@
 #pragma once
 
 #include <array>
+#include <glm/glm.hpp>
 #include <memory>
 
 #include "IObject.h"
@@ -50,24 +51,19 @@ class FireworkRocket {
   float RandomApprox(float a, float b);
 
   // Structures
-  typedef struct  // Create A Structure For Particle
-  {
-    float ini_life;      // Life
-    float ini_size;      // Size
-    float weight;        // Weight
-    float xi;            // X Direction
-    float yi;            // Y Direction
-    float zi;            // Z Direction
-    float ini_color[3];  // RGB Color
+  struct Particle {
+    float ini_life;   // Life
+    float ini_size;   // Size
+    float weight;     // Weight
+    glm::vec3 speed;  // Direction
+    glm::vec3 ini_color;
     // Updated over time:
     bool active;  // Active (Yes/No)
     float life;
     float size;
-    float x;         // X Position
-    float y;         // Y Position
-    float z;         // Z Position
-    float color[3];  // RGB Color
-  } Particle;        // Particles Structure
+    glm::vec3 pos;
+    glm::vec3 color;
+  };
 
   void Explode();
   void CreateRocketSpark(Particle &particle);

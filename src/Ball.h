@@ -26,22 +26,20 @@
 
 #include <GL/glew.h>
 
+#include <glm/glm.hpp>
 #include <memory>
 
 #include "Board.h"
 #include "IObject.h"
 #include "Paddle.h"
 #include "RandomMT.h"
-#include "Vector.h"
 
 // Create A Structure For Particle
 struct Particle {
-  float life;      // life
-  float fade;      // Fade Speed
-  float x;         // X Position
-  float y;         // Y Position
-  float z;         // Z Position
-  float color[4];  // RGBA Color - A = life
+  float life;  // life
+  float fade;  // Fade Speed
+  glm::vec3 pos;
+  glm::vec4 color;  // RGBA Color - A = life
 };
 
 class Ball : public IObject {
@@ -63,10 +61,10 @@ class Ball : public IObject {
 
   // Attributes
   // Current ball's location.
-  inline Vector2D GetPosition() { return ball_position_; }
+  inline glm::vec2 GetPosition() { return ball_position_; }
 
   // Current ball's velocity.
-  inline Vector2D GetSpeed() { return ball_speed_; }
+  inline glm::vec2 GetSpeed() { return ball_speed_; }
 
   // Implementation
  private:
@@ -74,15 +72,15 @@ class Ball : public IObject {
   void NewBall(bool go_to_left);
 
   // Detects if the ball collide with a point A.
-  inline bool HitPoint(Vector2D &old_pos, Vector2D &new_pos, Vector2D &speed, Vector2D &a_pos);
+  inline bool HitPoint(glm::vec2 &old_pos, glm::vec2 &new_pos, glm::vec2 &speed, glm::vec2 &a_pos);
 
   std::shared_ptr<Board> board_;
   std::shared_ptr<Paddle> left_paddle_;
   std::shared_ptr<Paddle> right_paddle_;
   GLuint texture_;
-  Vector2D ball_position_;  // Ball's position.
-  Vector2D ball_speed_;     // Ball's speed.
-  Particle particles_[50];  // Particles
+  glm::vec2 ball_position_;  // Ball's position.
+  glm::vec2 ball_speed_;     // Ball's speed.
+  Particle particles_[50];   // Particles
   RandomMT rand_;
 
   GLuint sphere_vao_ = 0;

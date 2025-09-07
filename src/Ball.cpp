@@ -22,6 +22,8 @@
 
 #include "Ball.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
 #include "StdAfx.h"
@@ -35,13 +37,13 @@ constexpr float kPartSize = 1.7f;
 
 namespace {
 struct Vertex {
-  GLfloat position[3];
-  GLfloat normal[3];
+  glm::vec3 position;
+  glm::vec3 normal;
 };
 
 struct ParticleVertex {
-  GLfloat position[3];
-  GLfloat texcoord[2];
+  glm::vec3 position;
+  glm::vec2 texcoord;
 };
 
 void generateSphere(std::vector<Vertex> &vertices, float radius, int rings, int sectors) {
@@ -69,47 +71,23 @@ void generateSphere(std::vector<Vertex> &vertices, float radius, int rings, int 
       float const x3 = cos(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
       float const z3 = sin(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
 
-      it->position[0] = x0 * radius;
-      it->position[1] = y0 * radius;
-      it->position[2] = z0 * radius;
-      it->normal[0] = x0;
-      it->normal[1] = y0;
-      it->normal[2] = z0;
+      it->position = {x0 * radius, y0 * radius, z0 * radius};
+      it->normal = {x0, y0, z0};
       ++it;
-      it->position[0] = x1 * radius;
-      it->position[1] = y1 * radius;
-      it->position[2] = z1 * radius;
-      it->normal[0] = x1;
-      it->normal[1] = y1;
-      it->normal[2] = z1;
+      it->position = {x1 * radius, y1 * radius, z1 * radius};
+      it->normal = {x1, y1, z1};
       ++it;
-      it->position[0] = x2 * radius;
-      it->position[1] = y2 * radius;
-      it->position[2] = z2 * radius;
-      it->normal[0] = x2;
-      it->normal[1] = y2;
-      it->normal[2] = z2;
+      it->position = {x2 * radius, y2 * radius, z2 * radius};
+      it->normal = {x2, y2, z2};
       ++it;
-      it->position[0] = x1 * radius;
-      it->position[1] = y1 * radius;
-      it->position[2] = z1 * radius;
-      it->normal[0] = x1;
-      it->normal[1] = y1;
-      it->normal[2] = z1;
+      it->position = {x1 * radius, y1 * radius, z1 * radius};
+      it->normal = {x1, y1, z1};
       ++it;
-      it->position[0] = x3 * radius;
-      it->position[1] = y3 * radius;
-      it->position[2] = z3 * radius;
-      it->normal[0] = x3;
-      it->normal[1] = y3;
-      it->normal[2] = z3;
+      it->position = {x3 * radius, y3 * radius, z3 * radius};
+      it->normal = {x3, y3, z3};
       ++it;
-      it->position[0] = x2 * radius;
-      it->position[1] = y2 * radius;
-      it->position[2] = z2 * radius;
-      it->normal[0] = x2;
-      it->normal[1] = y2;
-      it->normal[2] = z2;
+      it->position = {x2 * radius, y2 * radius, z2 * radius};
+      it->normal = {x2, y2, z2};
       ++it;
     }
 }
@@ -126,9 +104,9 @@ Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
   for (auto &part : particles_) {
     part.life = 1.0f;
     part.fade = (float)rand_.RandomRange(3.0f, 28.0f);  // Random Fade Value
-    part.x = ball_speed_.x;
-    part.y = ball_speed_.y;
-    part.z = -kBallRadius;
+    part.pos.x = ball_speed_.x;
+    part.pos.y = ball_speed_.y;
+    part.pos.z = -kBallRadius;
   }
 
   // Initiliaz random number generator.
@@ -175,7 +153,7 @@ Ball::~Ball() {
 }
 
 void Ball::Update(float dt) {
-  Vector2D new_ball_pos(ball_position_ + ball_speed_ * dt);
+  glm::vec2 new_ball_pos(ball_position_ + ball_speed_ * dt);
   // Bounce top/bottom
   if (new_ball_pos.y + kBallRadius > Board::GetTop()) {
     ball_speed_.y = -ball_speed_.y;
@@ -206,7 +184,7 @@ void Ball::Update(float dt) {
                      M_PI;
 
       // Increase speed
-      double speed = ball_speed_.Norm() + kBallSpeedIncrease;
+      double speed = glm::length(ball_speed_) + kBallSpeedIncrease;
       ball_speed_.x = float(cos(angle) * speed);
       ball_speed_.y = float(sin(angle) * speed);
     } else if (new_ball_pos.x + kBallRadius > Board::GetLeft()) {
@@ -236,7 +214,7 @@ void Ball::Update(float dt) {
                      (Paddle::GetHeight() / 2.0f);
 
       // Increase speed
-      double speed = ball_speed_.Norm() + kBallSpeedIncrease;
+      double speed = glm::length(ball_speed_) + kBallSpeedIncrease;
       ball_speed_.x = float(cos(angle) * speed);
       ball_speed_.y = float(sin(angle) * speed);
     } else if (new_ball_pos.x - kBallRadius < Board::GetRight()) {
@@ -260,9 +238,11 @@ void Ball::Update(float dt) {
 
     part.life = 1.0f;
     part.fade = (float)rand_.RandomRange(3.0f, 28.0f);  // Random Fade Value
-    part.x = ball_position_.x + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
-    part.y = ball_position_.y + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
-    part.z = -kBallRadius + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
+    part.pos.x =
+        ball_position_.x + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
+    part.pos.y =
+        ball_position_.y + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
+    part.pos.z = -kBallRadius + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
   }
 }
 
@@ -287,35 +267,39 @@ void Ball::Render() const {
   std::vector<ParticleVertex> vertices;
   vertices.reserve(sizeof(particles_) / sizeof(particles_[0]) * 6);
 
-  float model_view[16];
-  glGetFloatv(GL_MODELVIEW_MATRIX, model_view);
-  Vector3D right(model_view[0], model_view[4], model_view[8]);
-  Vector3D up(model_view[1], model_view[5], model_view[9]);
+  glm::mat4 model_view;
+  glGetFloatv(GL_MODELVIEW_MATRIX, &model_view[0][0]);
+  glm::vec3 right(model_view[0][0], model_view[1][0], model_view[2][0]);
+  glm::vec3 up(model_view[0][1], model_view[1][1], model_view[2][1]);
 
   for (auto &part : particles_) {
     float ps = part.life * kPartSize;
-    Vector3D center(part.x, part.y, part.z);
+    glm::vec3 center = part.pos;
 
-    Vector3D tl = center - (right + up) * ps;
-    Vector3D tr = center + (right - up) * ps;
-    Vector3D br = center + (right + up) * ps;
-    Vector3D bl = center - (right - up) * ps;
+    glm::vec3 tl = center - (right + up) * ps;
+    glm::vec3 tr = center + (right - up) * ps;
+    glm::vec3 br = center + (right + up) * ps;
+    glm::vec3 bl = center - (right - up) * ps;
 
-    vertices.push_back({{tl.x, tl.y, tl.z}, {0, 1}});
-    vertices.push_back({{br.x, br.y, br.z}, {1, 0}});
-    vertices.push_back({{tr.x, tr.y, tr.z}, {1, 1}});
-    vertices.push_back({{tl.x, tl.y, tl.z}, {0, 1}});
-    vertices.push_back({{bl.x, bl.y, bl.z}, {0, 0}});
-    vertices.push_back({{br.x, br.y, br.z}, {1, 0}});
+    vertices.push_back({tl, {0, 1}});
+    vertices.push_back({br, {1, 0}});
+    vertices.push_back({tr, {1, 1}});
+    vertices.push_back({tl, {0, 1}});
+    vertices.push_back({bl, {0, 0}});
+    vertices.push_back({br, {1, 0}});
   }
 
   glColor3f(0.0f, 1.0f, 0.0f);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
   glBindVertexArray(particles_vao_);
   glBindBuffer(GL_ARRAY_BUFFER, particles_vbo_);
   glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(ParticleVertex), vertices.data());
   glDrawArrays(GL_TRIANGLES, 0, vertices.size());
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
+  glDisableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);

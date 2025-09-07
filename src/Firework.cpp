@@ -29,18 +29,18 @@
 #include "Firework.h"
 
 #include <array>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
+#include "RandomMT.h"
 #include "StdAfx.h"
-#include "Vector.h"
 
 constexpr int kColorCount = 12;
 constexpr int kColorCount2 = 6;
 
-using ColorVec3 = std::array<GLfloat, 3>;
-
 // Rainbow of kColorCount
-constexpr std::array<ColorVec3, kColorCount> kRainbowkColorCount = {{{1.0f, 0.10f, 0.10f},
+constexpr std::array<glm::vec3, kColorCount> kRainbowkColorCount = {{{1.0f, 0.10f, 0.10f},
                                                                      {1.0f, 0.50f, 0.30f},
                                                                      {1.0f, 1.0f, 0.50f},
                                                                      {0.50f, 1.0f, 0.25f},
@@ -54,18 +54,18 @@ constexpr std::array<ColorVec3, kColorCount> kRainbowkColorCount = {{{1.0f, 0.10
                                                                      {1.0f, 0.25f, 0.50f}}};
 
 // Yellow/Orange/Bright kColorCount
-constexpr std::array<ColorVec3, kColorCount> kWarmkColorCount = {{{1.0f, 0.5f, 0.0f},
-                                                                  {1.0f, 0.75f, 0.5f},
-                                                                  {1.0f, 1.0f, 0.7f},
-                                                                  {1.0f, 1.0f, 0.5f},
-                                                                  {0.8f, 0.8f, 0.8f},
-                                                                  {1.0f, 1.0f, 0.8f}}};
+constexpr std::array<glm::vec3, kColorCount2> kWarmkColorCount = {{{1.0f, 0.5f, 0.0f},
+                                                                   {1.0f, 0.75f, 0.5f},
+                                                                   {1.0f, 1.0f, 0.7f},
+                                                                   {1.0f, 1.0f, 0.5f},
+                                                                   {0.8f, 0.8f, 0.8f},
+                                                                   {1.0f, 1.0f, 0.8f}}};
 
 namespace {
 struct ParticleVertex {
-  GLfloat position[3];
-  GLfloat texcoord[2];
-  GLfloat color[3];
+  glm::vec3 position;
+  glm::vec2 texcoord;
+  glm::vec3 color;
 };
 }  // namespace
 
@@ -135,16 +135,14 @@ void FireworkRocket::Create() {
   part_rocket_.ini_size = 0.5f;
   part_rocket_.weight = 2.0f;
   float angle = float(M_PI) / 2.0f + (float)rand_.RandomRange(-M_PI / 4.0f, M_PI / 4.0f);
-  part_rocket_.xi = (float)cos(angle) * 13.0f;  // X Axis Speed And Direction
-  part_rocket_.yi = (float)sin(angle) * 13.0f;  // Y Axis Speed And Direction
-  part_rocket_.zi = (float)sin(rand_.RandomRange(-M_PI / 8.0f, M_PI / 8.0f)) *
-                    13.0f;  // Z Axis Speed And Direction
-  part_rocket_.x = float(-30.0f + angle * 60.0f / M_PI + rand_.RandomRange(-10.0, 10.0));
-  part_rocket_.y = (float)rand_.RandomRange(-24.0, -15.0);
-  part_rocket_.z = 0.0f;
-  part_rocket_.color[0] = part_rocket_.ini_color[0] = 1.0f;
-  part_rocket_.color[1] = part_rocket_.ini_color[1] = 0.8f;
-  part_rocket_.color[2] = part_rocket_.ini_color[2] = 0.2f;
+  part_rocket_.speed.x = (float)cos(angle) * 13.0f;  // X Axis Speed And Direction
+  part_rocket_.speed.y = (float)sin(angle) * 13.0f;  // Y Axis Speed And Direction
+  part_rocket_.speed.z = (float)sin(rand_.RandomRange(-M_PI / 8.0f, M_PI / 8.0f)) *
+                         13.0f;  // Z Axis Speed And Direction
+  part_rocket_.pos.x = float(-30.0f + angle * 60.0f / M_PI + rand_.RandomRange(-10.0, 10.0));
+  part_rocket_.pos.y = (float)rand_.RandomRange(-24.0, -15.0);
+  part_rocket_.pos.z = 0.0f;
+  part_rocket_.color = part_rocket_.ini_color = {1.0f, 0.8f, 0.2f};
 
   // Rocket's sparks
   for (auto& part : part_spark_) CreateRocketSpark(part);
@@ -153,7 +151,7 @@ void FireworkRocket::Create() {
   int exposition_color = rand_.RandomInt() % kColorCount;
   for (int i = 0; i < part_pink_.size(); ++i) {
     Particle& part = part_pink_[i];
-    memset(&part, 0, sizeof(Particle));
+    part = {};
     part.active = false;
     part.life = part.ini_life = RandomApprox(1.6f, 1.9f);
     part.ini_size = 0.8f;
@@ -161,20 +159,18 @@ void FireworkRocket::Create() {
     angle = float(rand_.RandomReal2() * 2.0 * M_PI);
     float angle2 = float(rand_.RandomReal2() * 2.0 * M_PI);
     float velocity = RandomApprox(7.2f, 11.1f);
-    part.xi = velocity * float(cos(angle2) * cos(angle));
-    part.yi = velocity * float(cos(angle2) * sin(angle));
-    part.zi = velocity * float(sin(angle2));
-    part.color[0] = part.ini_color[0] = kRainbowkColorCount[exposition_color][0];
-    part.color[1] = part.ini_color[1] = kRainbowkColorCount[exposition_color][1];
-    part.color[2] = part.ini_color[2] = kRainbowkColorCount[exposition_color][2];
+    part.speed.x = velocity * float(cos(angle2) * cos(angle));
+    part.speed.y = velocity * float(cos(angle2) * sin(angle));
+    part.speed.z = velocity * float(sin(angle2));
+    part.color = part.ini_color = kRainbowkColorCount[exposition_color];
 
     // Explosion's fire (trail following the pink bulbs).
     for (int j = 0; j < kExplosionFireCount; ++j) {
-      memcpy(&part_fire_[i * kExplosionFireCount + j], &part, sizeof(Particle));
+      part_fire_[i * kExplosionFireCount + j] = part;
       part_fire_[i * kExplosionFireCount + j].weight = 0.8f;
-      part_fire_[i * kExplosionFireCount + j].xi = 0.0f;
-      part_fire_[i * kExplosionFireCount + j].yi = 0.0f;
-      part_fire_[i * kExplosionFireCount + j].zi = 0.0f;
+      part_fire_[i * kExplosionFireCount + j].speed = {0.0f, 0.0f, 0.0f};
+      part_fire_[i * kExplosionFireCount + j].color =
+          part_fire_[i * kExplosionFireCount + j].ini_color = {1.0f, 0.5f, 0.0f};
     }
   }
 }
@@ -201,45 +197,41 @@ void FireworkRocket::CreateRocketSpark(Particle& particle) {
   particle.life = particle.ini_life = RandomApprox(1.1f, 2.0f);
   particle.ini_size = RandomApprox(0.2f, 0.3f);
   particle.weight = 0.5f;
-  particle.x = RandomApprox(part_rocket_.x, 0.1f) - rnd * part_rocket_.xi;
-  particle.y = RandomApprox(part_rocket_.y, 0.1f) - rnd * part_rocket_.yi;
-  particle.z = RandomApprox(part_rocket_.z, 0.1f) - rnd * part_rocket_.zi;
-  particle.xi = RandomApprox(0.0f, 0.8f);
-  particle.yi = RandomApprox(0.0f, 0.8f);
-  particle.zi = RandomApprox(0.0f, 0.8f);
-  particle.color[0] = particle.ini_color[0] = kWarmkColorCount[color][0];
-  particle.color[1] = particle.ini_color[1] = kWarmkColorCount[color][1];
-  particle.color[2] = particle.ini_color[2] = kWarmkColorCount[color][2];
+  particle.pos = part_rocket_.pos - (rnd * part_rocket_.speed +
+                                     glm::vec3{RandomApprox(0.0f, 0.1f), RandomApprox(0.0f, 0.1f),
+                                               RandomApprox(0.0f, 0.1f)});
+  particle.speed = {RandomApprox(0.0f, 0.8f), RandomApprox(0.0f, 0.8f), RandomApprox(0.0f, 0.8f)};
+  particle.color = particle.ini_color = kWarmkColorCount[color];
 }
 
 bool FireworkRocket::Render() const {
   // Get camera vectors for billboarding
-  float modelview[16];
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
-  const Vector3D right(modelview[0], modelview[4], modelview[8]);
-  const Vector3D up(modelview[1], modelview[5], modelview[9]);
+  glm::mat4 modelview;
+  glGetFloatv(GL_MODELVIEW_MATRIX, &modelview[0][0]);
+  const glm::vec3 right(modelview[0][0], modelview[1][0], modelview[2][0]);
+  const glm::vec3 up(modelview[0][1], modelview[1][1], modelview[2][1]);
 
   auto fill_vertices = [&](std::vector<ParticleVertex>& vertices, const auto& particles) {
     vertices.clear();
     vertices.reserve(particles.size() * 6);
     for (const auto& part : particles) {
       if (!part.active) continue;
-      const Vector3D center(part.x, part.y, part.z);
+      const glm::vec3 center = part.pos;
       const float size = part.size;
-      const float* color = part.color;
+      const glm::vec3 color = part.color;
 
-      const Vector3D tl = center + (-right + up) * size;
-      const Vector3D tr = center + (right + up) * size;
-      const Vector3D bl = center + (-right - up) * size;
-      const Vector3D br = center + (right - up) * size;
+      const glm::vec3 tl = center + (-right + up) * size;
+      const glm::vec3 tr = center + (right + up) * size;
+      const glm::vec3 bl = center + (-right - up) * size;
+      const glm::vec3 br = center + (right - up) * size;
 
-      vertices.push_back({{tl.x, tl.y, tl.z}, {0, 1}, {color[0], color[1], color[2]}});
-      vertices.push_back({{bl.x, bl.y, bl.z}, {0, 0}, {color[0], color[1], color[2]}});
-      vertices.push_back({{tr.x, tr.y, tr.z}, {1, 1}, {color[0], color[1], color[2]}});
+      vertices.push_back({tl, {0, 1}, color});
+      vertices.push_back({bl, {0, 0}, color});
+      vertices.push_back({tr, {1, 1}, color});
 
-      vertices.push_back({{tr.x, tr.y, tr.z}, {1, 1}, {color[0], color[1], color[2]}});
-      vertices.push_back({{bl.x, bl.y, bl.z}, {0, 0}, {color[0], color[1], color[2]}});
-      vertices.push_back({{br.x, br.y, br.z}, {1, 0}, {color[0], color[1], color[2]}});
+      vertices.push_back({tr, {1, 1}, color});
+      vertices.push_back({bl, {0, 0}, color});
+      vertices.push_back({br, {1, 0}, color});
     }
   };
 
@@ -289,15 +281,14 @@ bool FireworkRocket::Update(float dt) {
 
   // Update rocket
   if (part_rocket_.active) {
-    part_rocket_.x += part_rocket_.xi * dt;
-    part_rocket_.y += part_rocket_.yi * dt;
-    part_rocket_.z += part_rocket_.zi * dt;
+    part_rocket_.pos += part_rocket_.speed * dt;
 
     if (part_rocket_.life > 0.0f) {
       life = part_rocket_.life / part_rocket_.ini_life;
 
-      part_rocket_.xi += 0.03f * sin(t * part_rocket_.ini_life * 4.0f);
-      part_rocket_.yi += 0.03f * cos(t * part_rocket_.ini_life * 2.0f) - part_rocket_.weight * dt;
+      part_rocket_.speed.x += 0.03f * sin(t * part_rocket_.ini_life * 4.0f);
+      part_rocket_.speed.y +=
+          0.03f * cos(t * part_rocket_.ini_life * 2.0f) - part_rocket_.weight * dt;
     }
 
     part_rocket_.life -= dt;
@@ -314,17 +305,13 @@ bool FireworkRocket::Update(float dt) {
 
     life = part.life / part.ini_life;
 
-    part.x += part.xi * life * life * dt;  // Move On The X Axis By X Speed
-    part.y += part.yi * life * life * dt;  // Move On The Y Axis By Y Speed
-    part.z += part.zi * life * life * dt;  // Move On The Z Axis By Z Speed
+    part.pos += part.speed * life * life * dt;
 
-    part.yi -= float(part.weight * dt);
+    part.speed.y -= float(part.weight * dt);
     part.size = part.ini_size * life * life;
     if (life < 0.2f) {
       alpha = life * 5.0f;
-      part.color[0] = part.ini_color[0] * alpha;
-      part.color[1] = part.ini_color[1] * alpha;
-      part.color[2] = part.ini_color[2] * alpha;
+      part.color = part.ini_color * alpha;
     }
 
     part.life -= dt;
@@ -345,17 +332,13 @@ bool FireworkRocket::Update(float dt) {
 
       life = part_pink.life / part_pink.ini_life;
 
-      part_pink.x += part_pink.xi * life * life * dt;
-      part_pink.y += part_pink.yi * life * life * dt;
-      part_pink.z += part_pink.zi * life * life * dt;
+      part_pink.pos += part_pink.speed * life * life * dt;
 
-      part_pink.yi -= part_pink.weight * dt;
+      part_pink.speed.y -= part_pink.weight * dt;
       part_pink.size = part_pink.ini_size * life * life;
       if (life < 0.2f) {
         alpha = life * 5.0f;
-        part_pink.color[0] = part_pink.ini_color[0] * alpha;
-        part_pink.color[1] = part_pink.ini_color[1] * alpha;
-        part_pink.color[2] = part_pink.ini_color[2] * alpha;
+        part_pink.color = part_pink.ini_color * alpha;
       }
 
       part_pink.life -= (float)dt;
@@ -367,9 +350,7 @@ bool FireworkRocket::Update(float dt) {
       if (!part_fire.active) {
         part_fire.active = true;
         part_fire.life = 0.7f * part_pink.life;
-        part_fire.x = part_pink.x;
-        part_fire.y = part_pink.y;
-        part_fire.z = part_pink.z;
+        part_fire.pos = part_pink.pos;
       }
     }
 
@@ -380,17 +361,13 @@ bool FireworkRocket::Update(float dt) {
 
       life = part.life / part.ini_life;
 
-      part.x += part.xi * dt;
-      part.y += part.yi * dt;
-      part.z += part.zi * dt;
+      part.pos += part.speed * dt;
 
-      part.yi -= part.weight * dt;
+      part.speed.y -= part.weight * dt;
       part.size = part.ini_size * life * life;
       if (life < 0.2f) {
         alpha = life * 5.0f;
-        part.color[0] = part.ini_color[0] * alpha;
-        part.color[1] = part.ini_color[1] * alpha;
-        part.color[2] = part.ini_color[2] * alpha;
+        part.color = part.ini_color * alpha;
       }
 
       part.life -= dt;
@@ -406,9 +383,7 @@ bool FireworkRocket::Update(float dt) {
 void FireworkRocket::Explode() {
   for (auto& part : part_pink_) {
     part.active = true;
-    part.x = part_rocket_.x;
-    part.y = part_rocket_.y;
-    part.z = part_rocket_.z;
+    part.pos = part_rocket_.pos;
   }
 
   is_exploding_ = true;
@@ -431,11 +406,15 @@ void Firework::Render() const {
   glEnable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glDisable(GL_LIGHTING);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
   glTranslatef(0.0f, 0.0f, -40.0f);
   for (const FireworkRocket& rocket : rockets_) rocket.Render();
 
   glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
   glEnable(GL_LIGHTING);
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);

@@ -237,17 +237,17 @@ Board::Board()
     }
 
     if (a) {
-      digit_vertices.insert(digit_vertices.end(),
-                            {0.0f, kDigitHeight - kDigitInnerSpacing, 0.0f,
-                             kDigitHeight / 2.0f + kDigitInnerSpacing, -kDigitBorder,
-                             kDigitHeight / 2.0f + kDigitBorder / 2.0f + kDigitInnerSpacing,
-                             -kDigitBorder, kDigitHeight - kDigitBorder - kDigitInnerSpacing});
+      digit_vertices.insert(
+          digit_vertices.end(),
+          {0.0f, kDigitHeight - kDigitInnerSpacing, 0.0f, kDigitHeight / 2.0f + kDigitInnerSpacing,
+           -kDigitBorder, kDigitHeight / 2.0f + kDigitBorder / 2.0f + kDigitInnerSpacing,
+           -kDigitBorder, kDigitHeight - kDigitBorder - kDigitInnerSpacing});
     }
     if (b) {
       digit_vertices.insert(
           digit_vertices.end(),
-          {0.0f, kDigitHeight / 2.0f - kDigitInnerSpacing, 0.0f, kDigitInnerSpacing,
-           -kDigitBorder, kDigitBorder + kDigitInnerSpacing, -kDigitBorder,
+          {0.0f, kDigitHeight / 2.0f - kDigitInnerSpacing, 0.0f, kDigitInnerSpacing, -kDigitBorder,
+           kDigitBorder + kDigitInnerSpacing, -kDigitBorder,
            kDigitHeight / 2.0f - kDigitBorder / 2.0f - kDigitInnerSpacing});
     }
     if (c) {

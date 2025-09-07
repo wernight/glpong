@@ -22,6 +22,8 @@
 
 #include "AiPaddle.h"
 
+#include <glm/glm.hpp>
+
 #include "Board.h"
 #include "StdAfx.h"
 
@@ -32,7 +34,7 @@ void AiPaddle::TrackBall(std::shared_ptr<Ball> ball) { ball_ = ball; }
 
 void AiPaddle::Update(float dt) {
   static float total_time = 0.0f;
-  Vector2D ball_pos;
+  glm::vec2 ball_pos;
   float ball_distance;
   float rnd;
 
