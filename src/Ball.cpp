@@ -44,15 +44,14 @@ struct ParticleVertex {
   glm::vec2 texcoord;
 };
 
-void generateSphere(std::vector<Vertex> &vertices, float radius, int rings, int sectors) {
+std::vector<Vertex> generateSphere(float radius, int rings, int sectors) {
   float const R = 1. / (float)(rings - 1);
   float const S = 1. / (float)(sectors - 1);
-  int r, s;
 
-  vertices.resize(rings * sectors * 6);
-  auto it = vertices.begin();
-  for (r = 0; r < rings - 1; r++)
-    for (s = 0; s < sectors - 1; s++) {
+  std::vector<Vertex> vertices(rings * sectors * 6);
+
+  for (int r = 0; r < rings - 1; r++) {
+    for (int s = 0; s < sectors - 1; s++) {
       float const y0 = sin(-M_PI_2 + M_PI * r * R);
       float const x0 = cos(2 * M_PI * s * S) * sin(M_PI * r * R);
       float const z0 = sin(2 * M_PI * s * S) * sin(M_PI * r * R);
@@ -69,25 +68,21 @@ void generateSphere(std::vector<Vertex> &vertices, float radius, int rings, int 
       float const x3 = cos(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
       float const z3 = sin(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
 
-      it->position = {x0 * radius, y0 * radius, z0 * radius};
-      it->normal = {x0, y0, z0};
-      ++it;
-      it->position = {x1 * radius, y1 * radius, z1 * radius};
-      it->normal = {x1, y1, z1};
-      ++it;
-      it->position = {x2 * radius, y2 * radius, z2 * radius};
-      it->normal = {x2, y2, z2};
-      ++it;
-      it->position = {x1 * radius, y1 * radius, z1 * radius};
-      it->normal = {x1, y1, z1};
-      ++it;
-      it->position = {x3 * radius, y3 * radius, z3 * radius};
-      it->normal = {x3, y3, z3};
-      ++it;
-      it->position = {x2 * radius, y2 * radius, z2 * radius};
-      it->normal = {x2, y2, z2};
-      ++it;
+      glm::vec3 v0(x0, y0, z0);
+      glm::vec3 v1(x1, y1, z1);
+      glm::vec3 v2(x2, y2, z2);
+      glm::vec3 v3(x3, y3, z3);
+
+      vertices.push_back({v0 * radius, v0});
+      vertices.push_back({v1 * radius, v1});
+      vertices.push_back({v2 * radius, v2});
+
+      vertices.push_back({v1 * radius, v1});
+      vertices.push_back({v3 * radius, v3});
+      vertices.push_back({v2 * radius, v2});
     }
+  }
+  return vertices;
 }
 }  // namespace
 
@@ -114,8 +109,7 @@ Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
   }
 
   // Ball sphere
-  std::vector<Vertex> vertices;
-  generateSphere(vertices, kBallRadius, 7, 5);
+  std::vector<Vertex> vertices = generateSphere(kBallRadius, 7, 5);
   sphere_vertex_count_ = vertices.size();
 
   glGenVertexArrays(1, &sphere_vao_);
@@ -171,20 +165,20 @@ void Ball::Update(float dt) {
     float b = ball_position_.y - a * ball_position_.x;
     float y = a * (Board::GetLeft() - Paddle::GetWidth() - kBallRadius) + b;
 
-    if (ball_position_.x + kBallRadius <= Board::GetLeft() - Paddle::GetWidth() &&
+    bool ball_is_touching_paddle_front_edge =
+        ball_position_.x + kBallRadius <= Board::GetLeft() - Paddle::GetWidth() &&
         y - kBallRadius <= left_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
-        y + kBallRadius >= left_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f) {
-      // Illuminate.
+        y + kBallRadius >= left_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f;
+    if (ball_is_touching_paddle_front_edge) {
+      // Illuminate the pad.
       left_paddle_->Illuminate();
-      // Bounce on paddle.
+      // Bounce on the pad.
       new_ball_pos.x =
           2.0f * (Board::GetLeft() - Paddle::GetWidth() - kBallRadius) - new_ball_pos.x;
-      // Bouce angle.
-      double angle = (left_paddle_->GetPosition() - new_ball_pos.y) * M_PI / 4.0f /
-                         (Paddle::GetHeight() / 2.0f) +
-                     M_PI;
+      double angle =
+          (left_paddle_->GetPosition() - new_ball_pos.y) / Paddle::GetHeight() * M_PI / 2.0f + M_PI;
 
-      // Increase speed
+      // Increase the ball's speed.
       double speed = glm::length(ball_speed_) + kBallSpeedIncrease;
       ball_speed_.x = float(cos(angle) * speed);
       ball_speed_.y = float(sin(angle) * speed);
@@ -202,19 +196,20 @@ void Ball::Update(float dt) {
     float y = a * (Board::GetRight() + Paddle::GetWidth() + kBallRadius) + b;
 
     // Bounce on paddle?
-    if (ball_position_.x - kBallRadius >= Board::GetRight() + Paddle::GetWidth() &&
+    bool ball_is_touching_paddle_front_edge =
+        ball_position_.x - kBallRadius >= Board::GetRight() + Paddle::GetWidth() &&
         y - kBallRadius <= right_paddle_->GetPosition() + Paddle::GetHeight() * 0.5f &&
-        y + kBallRadius >= right_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f) {
-      // Illuminate.
+        y + kBallRadius >= right_paddle_->GetPosition() - Paddle::GetHeight() * 0.5f;
+    if (ball_is_touching_paddle_front_edge) {
+      // Illuminate the pad.
       right_paddle_->Illuminate();
-      // Bounce.
+      // Bounce on the pad.
       new_ball_pos.x =
           2.0f * (Board::GetRight() + Paddle::GetWidth() + kBallRadius) - new_ball_pos.x;
-      // Bouce angle.
-      double angle = (new_ball_pos.y - right_paddle_->GetPosition()) * M_PI / 4.0f /
-                     (Paddle::GetHeight() / 2.0f);
+      double angle =
+          (new_ball_pos.y - right_paddle_->GetPosition()) / Paddle::GetHeight() * M_PI / 2.0f;
 
-      // Increase speed
+      // Increase the ball's speed.
       double speed = glm::length(ball_speed_) + kBallSpeedIncrease;
       ball_speed_.x = float(cos(angle) * speed);
       ball_speed_.y = float(sin(angle) * speed);
