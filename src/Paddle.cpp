@@ -37,15 +37,15 @@ constexpr float kPaddleIlluminateFade = 0.3f;
 
 namespace {
 const char* kPaddleVertexShader = R"glsl(
-#version 130
-attribute vec3 aPos;
-attribute vec3 aNormal;
+#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
 
 uniform mat4 modelview;
 uniform mat4 projection;
 
-varying vec3 Normal;
-varying vec3 FragPos;
+out vec3 Normal;
+out vec3 FragPos;
 
 void main()
 {
@@ -56,15 +56,18 @@ void main()
 )glsl";
 
 const char* kPaddleFragmentShader = R"glsl(
-#version 130
-varying vec3 Normal;
-varying vec3 FragPos;
+#version 300 es
+precision mediump float;
+in vec3 Normal;
+in vec3 FragPos;
 
 uniform vec3 objectColor;
 
 uniform vec3 lightPos;
 uniform vec3 lightAmbient;
 uniform vec3 lightDiffuse;
+
+out vec4 FragColor;
 
 void main()
 {
@@ -75,7 +78,7 @@ void main()
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = lightDiffuse * diff * objectColor;
 
-    gl_FragColor = vec4(ambient + diffuse, 1.0);
+    FragColor = vec4(ambient + diffuse, 1.0);
 }
 )glsl";
 
@@ -98,23 +101,23 @@ Paddle::Paddle(bool is_left_paddle)
             // Front face
             {{Board::GetLeft(), GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
             {{Board::GetLeft(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
-            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
-             {0.0f, 0.0f, -1.0f}},
             {{Board::GetLeft() - GetWidth(), GetHeight() / 2.0f, -kPaddleBevel},
+             {0.0f, 0.0f, -1.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
              {0.0f, 0.0f, -1.0f}},
             // Left face
             {{Board::GetLeft() - GetWidth(), GetHeight() / 2.0f, -kPaddleBevel},
              {-1.0f, 0.0f, 0.0f}},
             {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
              {-1.0f, 0.0f, 0.0f}},
-            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, 0}, {-1.0f, 0.0f, 0.0f}},
             {{Board::GetLeft() - GetWidth(), GetHeight() / 2.0f, 0}, {-1.0f, 0.0f, 0.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, 0}, {-1.0f, 0.0f, 0.0f}},
             // Bottom face
             {{Board::GetLeft(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, -1.0f, 0.0f}},
             {{Board::GetLeft(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
-            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
             {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
              {0.0f, -1.0f, 0.0f}},
+            {{Board::GetLeft() - GetWidth(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
         });
   } else {
     vertices.insert(
@@ -125,21 +128,21 @@ Paddle::Paddle(bool is_left_paddle)
              {0.0f, 0.0f, -1.0f}},
             {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
              {0.0f, 0.0f, -1.0f}},
-            {{Board::GetRight(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
             {{Board::GetRight(), GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
+            {{Board::GetRight(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, 0.0f, -1.0f}},
             // Right face
             {{Board::GetRight() + GetWidth(), GetHeight() / 2.0f, 0}, {1.0f, 0.0f, 0.0f}},
             {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, 0}, {1.0f, 0.0f, 0.0f}},
-            {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
-             {1.0f, 0.0f, 0.0f}},
             {{Board::GetRight() + GetWidth(), GetHeight() / 2.0f, -kPaddleBevel},
+             {1.0f, 0.0f, 0.0f}},
+            {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
              {1.0f, 0.0f, 0.0f}},
             // Bottom face
             {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, -kPaddleBevel},
              {0.0f, -1.0f, 0.0f}},
             {{Board::GetRight() + GetWidth(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
-            {{Board::GetRight(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
             {{Board::GetRight(), -GetHeight() / 2.0f, -kPaddleBevel}, {0.0f, -1.0f, 0.0f}},
+            {{Board::GetRight(), -GetHeight() / 2.0f, 0}, {0.0f, -1.0f, 0.0f}},
         });
   }
   vertex_count_ = vertices.size();
@@ -205,7 +208,7 @@ void Paddle::Render(const glm::mat4& view, const glm::mat4& model,
   shader_->SetUniform("objectColor", glm::vec3(illuminate_, 1.0f, illuminate_));
 
   glBindVertexArray(vao_);
-  glDrawArrays(GL_QUADS, 0, vertex_count_);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, vertex_count_);
   glBindVertexArray(0);
 }
 

@@ -5,16 +5,16 @@
 
 namespace {
 const char* kParticleVertexShader = R"glsl(
-#version 130
-attribute vec3 aPos;
-attribute vec2 aTexCoord;
-attribute vec3 aColor;
+#version 300 es
+in vec3 aPos;
+in vec2 aTexCoord;
+in vec3 aColor;
 
 uniform mat4 modelview;
 uniform mat4 projection;
 
-varying vec2 TexCoord;
-varying vec3 ParticleColor;
+out vec2 TexCoord;
+out vec3 ParticleColor;
 
 void main()
 {
@@ -25,15 +25,18 @@ void main()
 )glsl";
 
 const char* kParticleFragmentShader = R"glsl(
-#version 130
-varying vec2 TexCoord;
-varying vec3 ParticleColor;
+#version 300 es
+precision mediump float;
+in vec2 TexCoord;
+in vec3 ParticleColor;
 
 uniform sampler2D particleTexture;
 
+out vec4 FragColor;
+
 void main()
 {
-    gl_FragColor = texture2D(particleTexture, TexCoord) * vec4(ParticleColor, 1.0);
+    FragColor = texture(particleTexture, TexCoord) * vec4(ParticleColor, 1.0);
 }
 )glsl";
 }  // namespace
