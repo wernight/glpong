@@ -27,7 +27,6 @@
 #include <memory>
 
 #include "IObject.h"
-#include "RandomMT.h"
 
 class FireworkRocket {
   // Construction
@@ -47,8 +46,6 @@ class FireworkRocket {
 
   void Create();
 
-  float RandomApprox(float a, float b);
-
   // Structures
   struct Particle {
     float ini_life;   // Life
@@ -67,7 +64,6 @@ class FireworkRocket {
   void Explode();
   void CreateRocketSpark(Particle &particle);
 
-  static RandomMT rand_;
   std::array<Particle, kRocketFireCount>
       part_spark_;  // Particle Array (Rocket's propulsion sparks)
   std::array<Particle, kExplosionPinkCount> part_pink_;  // Explosion's pink particles

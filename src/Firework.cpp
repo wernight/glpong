@@ -31,9 +31,8 @@
 #include <array>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <random>
 #include <vector>
-
-#include "RandomMT.h"
 
 constexpr int kColorCount = 12;
 constexpr int kColorCount2 = 6;
@@ -66,9 +65,31 @@ struct ParticleVertex {
   glm::vec2 texcoord;
   glm::vec3 color;
 };
-}  // namespace
 
-RandomMT FireworkRocket::rand_;
+// Random number in [a, b]
+int RandomClosedInt(int a, int b) {
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
+  std::uniform_int_distribution<> dist(a, b);
+  return dist(gen);
+}
+
+// Random number in [a, b)
+float RandomRange(float a, float b) {
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dist(a, b);
+  return dist(gen);
+}
+
+// Random number in [a, b]
+float RandomClosedRange(float a, float b) {
+  return RandomRange(a, std::nextafter(b, std::numeric_limits<float>::max()));
+}
+
+// Random number of value (a) with a stdvar of (b).
+float RandomApprox(float a, float b) { return a + b * RandomClosedRange(-0.5f, 0.5f); }
+}  // namespace
 
 FireworkRocket::FireworkRocket() : is_exploding_(false) {
   Create();
@@ -133,13 +154,13 @@ void FireworkRocket::Create() {
   part_rocket_.life = part_rocket_.ini_life = RandomApprox(2.5f, 3.0f);
   part_rocket_.ini_size = 0.5f;
   part_rocket_.weight = 2.0f;
-  float angle = float(M_PI) / 2.0f + (float)rand_.RandomRange(-M_PI / 4.0f, M_PI / 4.0f);
-  part_rocket_.speed.x = (float)cos(angle) * 13.0f;  // X Axis Speed And Direction
-  part_rocket_.speed.y = (float)sin(angle) * 13.0f;  // Y Axis Speed And Direction
-  part_rocket_.speed.z = (float)sin(rand_.RandomRange(-M_PI / 8.0f, M_PI / 8.0f)) *
-                         13.0f;  // Z Axis Speed And Direction
-  part_rocket_.pos.x = float(-30.0f + angle * 60.0f / M_PI + rand_.RandomRange(-10.0, 10.0));
-  part_rocket_.pos.y = (float)rand_.RandomRange(-24.0, -15.0);
+  float angle = M_PI / 2.0f + RandomClosedRange(-M_PI / 4.0f, M_PI / 4.0f);
+  constexpr float kSpeedFactor = 13.0f;
+  part_rocket_.speed.x = cos(angle) * kSpeedFactor;
+  part_rocket_.speed.y = sin(angle) * kSpeedFactor;
+  part_rocket_.speed.z = sin(RandomClosedRange(-M_PI / 8.0f, M_PI / 8.0f)) * kSpeedFactor;
+  part_rocket_.pos.x = -30.0f + angle * 60.0f / M_PI + RandomClosedRange(-10.0f, 10.0f);
+  part_rocket_.pos.y = RandomClosedRange(-24.0f, -15.0f);
   part_rocket_.pos.z = 0.0f;
   part_rocket_.color = part_rocket_.ini_color = {1.0f, 0.8f, 0.2f};
 
@@ -147,7 +168,7 @@ void FireworkRocket::Create() {
   for (auto& part : part_spark_) CreateRocketSpark(part);
 
   // Explosion's pink
-  int exposition_color = rand_.RandomInt() % kColorCount;
+  int exposition_color = RandomClosedInt(0, kColorCount - 1);
   for (int i = 0; i < part_pink_.size(); ++i) {
     Particle& part = part_pink_[i];
     part = {};
@@ -155,8 +176,8 @@ void FireworkRocket::Create() {
     part.life = part.ini_life = RandomApprox(1.6f, 1.9f);
     part.ini_size = 0.8f;
     part.weight = 1.0f * part.ini_life;
-    angle = float(rand_.RandomReal2() * 2.0 * M_PI);
-    float angle2 = float(rand_.RandomReal2() * 2.0 * M_PI);
+    angle = RandomRange(0, 2.0 * M_PI);
+    float angle2 = RandomRange(0, 2.0 * M_PI);
     float velocity = RandomApprox(7.2f, 11.1f);
     part.speed.x = velocity * float(cos(angle2) * cos(angle));
     part.speed.y = velocity * float(cos(angle2) * sin(angle));
@@ -183,14 +204,9 @@ FireworkRocket::~FireworkRocket() {
   if (fire_vbo_) glDeleteBuffers(1, &fire_vbo_);
 }
 
-float FireworkRocket::RandomApprox(float a, float b) {
-  // Random number of value (a) with a variation of (b).
-  return a + (rand_.RandomReal1() - 0.5f) * b;
-}
-
 void FireworkRocket::CreateRocketSpark(Particle& particle) {
-  int color = rand_.RandomInt() % kColorCount2;
-  float rnd = float(rand_.RandomReal2()) * 0.1f;
+  int color = RandomClosedInt(0, kColorCount2 - 1);
+  float rnd = RandomRange(0.0f, 0.1f);
 
   particle.active = true;
   particle.life = particle.ini_life = RandomApprox(1.1f, 2.0f);

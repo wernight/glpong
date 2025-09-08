@@ -28,11 +28,11 @@
 
 #include <glm/glm.hpp>
 #include <memory>
+#include <random>
 
 #include "Board.h"
 #include "IObject.h"
 #include "Paddle.h"
-#include "RandomMT.h"
 
 // Create A Structure For Particle
 struct Particle {
@@ -78,10 +78,11 @@ class Ball : public IObject {
   std::shared_ptr<Paddle> left_paddle_;
   std::shared_ptr<Paddle> right_paddle_;
   GLuint texture_;
-  glm::vec2 ball_position_;  // Ball's position.
-  glm::vec2 ball_speed_;     // Ball's speed.
-  Particle particles_[50];   // Particles
-  RandomMT rand_;
+  glm::vec2 ball_position_;             // Ball's position.
+  glm::vec2 ball_speed_;                // Ball's speed.
+  std::array<Particle, 50> particles_;  // Particles
+  std::mt19937 gen_;
+  std::uniform_real_distribution<float> fade_dist_;
 
   GLuint sphere_vao_ = 0;
   GLuint sphere_vbo_ = 0;

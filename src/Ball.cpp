@@ -93,22 +93,25 @@ void generateSphere(std::vector<Vertex> &vertices, float radius, int rings, int 
 
 Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
            std::shared_ptr<Paddle> right_paddle, GLuint texture)
-    : board_(board), left_paddle_(left_paddle), right_paddle_(right_paddle), texture_(texture) {
+    : board_(board),
+      left_paddle_(left_paddle),
+      right_paddle_(right_paddle),
+      texture_(texture),
+      gen_(std::random_device()()),
+      fade_dist_(3.0f, 28.0f) {
   // Create a new ball.
   ball_position_.y = 0.0f;
-  NewBall(rand_.RandomInt() % 2 == 0);
+  bool go_left = std::uniform_int_distribution(0, 1)(gen_) == 0;
+  NewBall(go_left);
 
   // Init particles.
   for (auto &part : particles_) {
     part.life = 1.0f;
-    part.fade = (float)rand_.RandomRange(3.0f, 28.0f);  // Random Fade Value
+    part.fade = fade_dist_(gen_);  // Random Fade Value
     part.pos.x = ball_speed_.x;
     part.pos.y = ball_speed_.y;
     part.pos.z = -kBallRadius;
   }
-
-  // Initiliaz random number generator.
-  rand_.Randomize();
 
   // Ball sphere
   std::vector<Vertex> vertices;
@@ -132,7 +135,7 @@ Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
   glGenBuffers(1, &particles_vbo_);
   glBindVertexArray(particles_vao_);
   glBindBuffer(GL_ARRAY_BUFFER, particles_vbo_);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(particles_) * 6 * sizeof(ParticleVertex), nullptr,
+  glBufferData(GL_ARRAY_BUFFER, particles_.size() * 6 * sizeof(ParticleVertex), nullptr,
                GL_DYNAMIC_DRAW);
   glEnableClientState(GL_VERTEX_ARRAY);
   glVertexPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void *)offsetof(ParticleVertex, position));
@@ -227,6 +230,7 @@ void Ball::Update(float dt) {
   ball_position_ = new_ball_pos;
 
   // Particles.
+  std::uniform_real_distribution<float> pos_dist(-kBallRadius * 0.5f, kBallRadius * 0.5f);
   for (auto &part : particles_) {
     // Reduce Particles Life By 'Fade'
     part.life -= part.fade * dt;
@@ -235,12 +239,10 @@ void Ball::Update(float dt) {
     if (part.life >= 0.0f) continue;
 
     part.life = 1.0f;
-    part.fade = (float)rand_.RandomRange(3.0f, 28.0f);  // Random Fade Value
-    part.pos.x =
-        ball_position_.x + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
-    part.pos.y =
-        ball_position_.y + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
-    part.pos.z = -kBallRadius + (float)rand_.RandomRange(-kBallRadius * 0.5f, kBallRadius * 0.5f);
+    part.fade = fade_dist_(gen_);  // Random Fade Value
+    part.pos.x = ball_position_.x + pos_dist(gen_);
+    part.pos.y = ball_position_.y + pos_dist(gen_);
+    part.pos.z = -kBallRadius + pos_dist(gen_);
   }
 }
 
@@ -263,7 +265,7 @@ void Ball::Render() const {
   glDisable(GL_CULL_FACE);
 
   std::vector<ParticleVertex> vertices;
-  vertices.reserve(sizeof(particles_) / sizeof(particles_[0]) * 6);
+  vertices.reserve(particles_.size() * 6);
 
   glm::mat4 model_view;
   glGetFloatv(GL_MODELVIEW_MATRIX, &model_view[0][0]);
@@ -310,8 +312,9 @@ bool Ball::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lPara
 
 void Ball::NewBall(bool go_to_left) {
   // Selects a random angle.
+  std::uniform_real_distribution<float> angle_dist(-kBallMaxAngle, +kBallMaxAngle);
   float angle;
-  do angle = (float)rand_.RandomRange(-kBallMaxAngle, +kBallMaxAngle);
+  do angle = angle_dist(gen_);
   while (fabs(angle) < kBallMinAngle);
 
   if (go_to_left) {
