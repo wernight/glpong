@@ -27,12 +27,6 @@ This game uses OpenGL, GLU and SDL.
 
 # Compilation
 
-## Windows
-
-Use Visual Studio; possibly generate project files using CMake.
-
-## Linux
-
 Using Docker:
 
     $ docker compose build

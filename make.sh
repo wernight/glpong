@@ -33,3 +33,4 @@ linuxdeploy \
     appimage
 
 mv *.AppImage /code/bin/
+
