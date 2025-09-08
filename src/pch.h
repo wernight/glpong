@@ -49,10 +49,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#ifndef DWORD
-typedef unsigned long DWORD;
-#endif
-
 // Constants
 #ifndef M_PI
 #define M_PI 3.1415928

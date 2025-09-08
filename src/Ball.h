@@ -33,6 +33,8 @@
 #include "Board.h"
 #include "IObject.h"
 #include "Paddle.h"
+#include "ParticleShader.h"
+#include "Shader.h"
 
 // Create A Structure For Particle
 struct Particle {
@@ -54,7 +56,8 @@ class Ball : public IObject {
   void Update(float dt) override;
 
   // Render the object.
-  void Render() const override;
+  void Render(const glm::mat4& model, const glm::mat4& view,
+              const glm::mat4& projection) const override;
 
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
@@ -72,22 +75,15 @@ class Ball : public IObject {
   void NewBall(bool go_to_left);
 
   // Detects if the ball collide with a point A.
-  inline bool HitPoint(glm::vec2 &old_pos, glm::vec2 &new_pos, glm::vec2 &speed, glm::vec2 &a_pos);
+  inline bool HitPoint(glm::vec2& old_pos, glm::vec2& new_pos, glm::vec2& speed, glm::vec2& a_pos);
 
+  std::array<Particle, 50> particles_;
   std::shared_ptr<Board> board_;
   std::shared_ptr<Paddle> left_paddle_;
   std::shared_ptr<Paddle> right_paddle_;
-  GLuint texture_;
-  glm::vec2 ball_position_;             // Ball's position.
-  glm::vec2 ball_speed_;                // Ball's speed.
-  std::array<Particle, 50> particles_;  // Particles
+  ParticleShader particle_shader_;
+  glm::vec2 ball_position_;
+  glm::vec2 ball_speed_;
   std::mt19937 gen_;
   std::uniform_real_distribution<float> fade_dist_;
-
-  GLuint sphere_vao_ = 0;
-  GLuint sphere_vbo_ = 0;
-  int sphere_vertex_count_ = 0;
-
-  GLuint particles_vao_ = 0;
-  GLuint particles_vbo_ = 0;
 };

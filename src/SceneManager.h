@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
 #include <memory>
 #include <vector>
 
@@ -38,10 +39,12 @@ class SceneManager : public IObject {
   virtual void Update(float dt) override;
 
   // Asks objects to render.
-  virtual void Render() const override;
+  virtual void Render(const glm::mat4& view, const glm::mat4& model,
+                      const glm::mat4& projection) const override;
 
   // Asks objects to process an event.
-  virtual bool ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam) override;
+  virtual bool ProcessEvent(IObject::EEvent nEvent, unsigned long wParam,
+                            unsigned long lParam) override;
 
   // Implementation
  private:

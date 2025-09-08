@@ -29,11 +29,13 @@ void SceneManager::Update(float dt) {
   for (auto& object : objects_) object->Update(dt);
 }
 
-void SceneManager::Render() const {
-  for (const auto& object : objects_) object->Render();
+void SceneManager::Render(const glm::mat4& model, const glm::mat4& view,
+                          const glm::mat4& projection) const {
+  for (const auto& object : objects_) object->Render(model, view, projection);
 }
 
-bool SceneManager::ProcessEvent(IObject::EEvent nEvent, DWORD wParam, DWORD lParam) {
+bool SceneManager::ProcessEvent(IObject::EEvent nEvent, unsigned long wParam,
+                                unsigned long lParam) {
   for (auto& object : objects_)
     if (object->ProcessEvent(nEvent, wParam, lParam)) return true;
   return false;

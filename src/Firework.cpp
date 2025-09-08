@@ -29,10 +29,11 @@
 #include "Firework.h"
 
 #include <array>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <memory>
 #include <random>
-#include <vector>
 
 constexpr int kColorCount = 12;
 constexpr int kColorCount2 = 6;
@@ -60,12 +61,6 @@ constexpr std::array<glm::vec3, kColorCount2> kWarmkColorCount = {{{1.0f, 0.5f, 
                                                                    {1.0f, 1.0f, 0.8f}}};
 
 namespace {
-struct ParticleVertex {
-  glm::vec3 position;
-  glm::vec2 texcoord;
-  glm::vec3 color;
-};
-
 // Random number in [a, b]
 int RandomClosedInt(int a, int b) {
   static std::random_device rd;
@@ -91,57 +86,7 @@ float RandomClosedRange(float a, float b) {
 float RandomApprox(float a, float b) { return a + b * RandomClosedRange(-0.5f, 0.5f); }
 }  // namespace
 
-FireworkRocket::FireworkRocket() : is_exploding_(false) {
-  Create();
-
-  // Sparks
-  glGenVertexArrays(1, &spark_vao_);
-  glGenBuffers(1, &spark_vbo_);
-  glBindVertexArray(spark_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, spark_vbo_);
-  glBufferData(GL_ARRAY_BUFFER, part_spark_.size() * 6 * sizeof(ParticleVertex), nullptr,
-               GL_DYNAMIC_DRAW);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, position));
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glTexCoordPointer(2, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, texcoord));
-  glEnableClientState(GL_COLOR_ARRAY);
-  glColorPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, color));
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
-  // Pink
-  glGenVertexArrays(1, &pink_vao_);
-  glGenBuffers(1, &pink_vbo_);
-  glBindVertexArray(pink_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, pink_vbo_);
-  glBufferData(GL_ARRAY_BUFFER, part_pink_.size() * 6 * sizeof(ParticleVertex), nullptr,
-               GL_DYNAMIC_DRAW);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, position));
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glTexCoordPointer(2, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, texcoord));
-  glEnableClientState(GL_COLOR_ARRAY);
-  glColorPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, color));
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
-  // Fire
-  glGenVertexArrays(1, &fire_vao_);
-  glGenBuffers(1, &fire_vbo_);
-  glBindVertexArray(fire_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, fire_vbo_);
-  glBufferData(GL_ARRAY_BUFFER, part_fire_.size() * 6 * sizeof(ParticleVertex), nullptr,
-               GL_DYNAMIC_DRAW);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, position));
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glTexCoordPointer(2, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, texcoord));
-  glEnableClientState(GL_COLOR_ARRAY);
-  glColorPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, color));
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-}
+FireworkRocket::FireworkRocket() : is_exploding_(false) { Create(); }
 
 void FireworkRocket::Create() {
   // Create particles
@@ -195,15 +140,6 @@ void FireworkRocket::Create() {
   }
 }
 
-FireworkRocket::~FireworkRocket() {
-  if (spark_vao_) glDeleteVertexArrays(1, &spark_vao_);
-  if (spark_vbo_) glDeleteBuffers(1, &spark_vbo_);
-  if (pink_vao_) glDeleteVertexArrays(1, &pink_vao_);
-  if (pink_vbo_) glDeleteBuffers(1, &pink_vbo_);
-  if (fire_vao_) glDeleteVertexArrays(1, &fire_vao_);
-  if (fire_vbo_) glDeleteBuffers(1, &fire_vbo_);
-}
-
 void FireworkRocket::CreateRocketSpark(Particle& particle) {
   int color = RandomClosedInt(0, kColorCount2 - 1);
   float rnd = RandomRange(0.0f, 0.1f);
@@ -219,78 +155,31 @@ void FireworkRocket::CreateRocketSpark(Particle& particle) {
   particle.color = particle.ini_color = kWarmkColorCount[color];
 }
 
-bool FireworkRocket::Render() const {
-  // Get camera vectors for billboarding
-  glm::mat4 modelview;
-  glGetFloatv(GL_MODELVIEW_MATRIX, &modelview[0][0]);
-  const glm::vec3 right(modelview[0][0], modelview[1][0], modelview[2][0]);
-  const glm::vec3 up(modelview[0][1], modelview[1][1], modelview[2][1]);
-
-  auto fill_vertices = [&](std::vector<ParticleVertex>& vertices, const auto& particles) {
-    vertices.clear();
-    vertices.reserve(particles.size() * 6);
+void FireworkRocket::AddParticles(std::vector<ParticleShader::Particle>& shader_particles) const {
+  // Get camera vectors for billboarding from the actual view matrix
+  auto add_particles = [&](const auto& particles) {
+    shader_particles.reserve(shader_particles.size() + particles.size());
     for (const auto& part : particles) {
       if (!part.active) continue;
-      const glm::vec3 center = part.pos;
-      const float size = part.size;
-      const glm::vec3 color = part.color;
 
-      const glm::vec3 tl = center + (-right + up) * size;
-      const glm::vec3 tr = center + (right + up) * size;
-      const glm::vec3 bl = center + (-right - up) * size;
-      const glm::vec3 br = center + (right - up) * size;
-
-      vertices.push_back({tl, {0, 1}, color});
-      vertices.push_back({bl, {0, 0}, color});
-      vertices.push_back({tr, {1, 1}, color});
-
-      vertices.push_back({tr, {1, 1}, color});
-      vertices.push_back({bl, {0, 0}, color});
-      vertices.push_back({br, {1, 0}, color});
+      shader_particles.push_back({part.pos, part.size, part.color});
     }
   };
 
-  std::vector<ParticleVertex> vertices;
-
   // Render Rocket's sparks
-  fill_vertices(vertices, part_spark_);
-  if (!vertices.empty()) {
-    glBindVertexArray(spark_vao_);
-    glBindBuffer(GL_ARRAY_BUFFER, spark_vbo_);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(ParticleVertex), vertices.data());
-    glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-  }
+  add_particles(part_spark_);
 
   // Render explosion
   if (is_exploding_) {
-    fill_vertices(vertices, part_pink_);
-    if (!vertices.empty()) {
-      glBindVertexArray(pink_vao_);
-      glBindBuffer(GL_ARRAY_BUFFER, pink_vbo_);
-      glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(ParticleVertex),
-                      vertices.data());
-      glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-    }
-
-    fill_vertices(vertices, part_fire_);
-    if (!vertices.empty()) {
-      glBindVertexArray(fire_vao_);
-      glBindBuffer(GL_ARRAY_BUFFER, fire_vbo_);
-      glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(ParticleVertex),
-                      vertices.data());
-      glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-    }
+    add_particles(part_pink_);
+    add_particles(part_fire_);
   }
-  glBindVertexArray(0);
-
-  return true;
 }
 
-bool FireworkRocket::Update(float dt) {
+void FireworkRocket::Update(float dt) {
   static float t = 0.0f;
   float life;
   float alpha;
-  bool end_explode = true;
 
   t += dt;
 
@@ -321,7 +210,6 @@ bool FireworkRocket::Update(float dt) {
     life = part.life / part.ini_life;
 
     part.pos += part.speed * life * life * dt;
-
     part.speed.y -= float(part.weight * dt);
     part.size = part.ini_size * life * life;
     if (life < 0.2f) {
@@ -339,60 +227,59 @@ bool FireworkRocket::Update(float dt) {
     }
   }
 
+  if (!is_exploding_) return;
+
   // Update explosion particles
-  if (is_exploding_) {
-    for (int i = 0; i < part_pink_.size(); ++i) {
-      Particle& part_pink = part_pink_[i];
-      if (!part_pink.active) continue;
+  for (int i = 0; i < part_pink_.size(); ++i) {
+    Particle& part_pink = part_pink_[i];
+    if (!part_pink.active) continue;
 
-      life = part_pink.life / part_pink.ini_life;
+    life = part_pink.life / part_pink.ini_life;
 
-      part_pink.pos += part_pink.speed * life * life * dt;
-
-      part_pink.speed.y -= part_pink.weight * dt;
-      part_pink.size = part_pink.ini_size * life * life;
-      if (life < 0.2f) {
-        alpha = life * 5.0f;
-        part_pink.color = part_pink.ini_color * alpha;
-      }
-
-      part_pink.life -= (float)dt;
-      if (part_pink.life < 0.0f) part_pink.active = false;
-
-      // Create fire trail
-      int j = int(life * (kExplosionFireCount - 2) + 1 + cos(t * 10.0f));
-      Particle& part_fire = part_fire_[i * kExplosionFireCount + j];
-      if (!part_fire.active) {
-        part_fire.active = true;
-        part_fire.life = 0.7f * part_pink.life;
-        part_fire.pos = part_pink.pos;
-      }
+    part_pink.pos += part_pink.speed * life * life * dt;
+    part_pink.speed.y -= part_pink.weight * dt;
+    part_pink.size = part_pink.ini_size * life * life;
+    if (life < 0.2f) {
+      alpha = life * 5.0f;
+      part_pink.color = part_pink.ini_color * alpha;
     }
 
-    for (auto& part : part_fire_) {
-      if (!part.active) continue;
+    part_pink.life -= (float)dt;
+    if (part_pink.life < 0.0f) part_pink.active = false;
 
-      end_explode = false;
-
-      life = part.life / part.ini_life;
-
-      part.pos += part.speed * dt;
-
-      part.speed.y -= part.weight * dt;
-      part.size = part.ini_size * life * life;
-      if (life < 0.2f) {
-        alpha = life * 5.0f;
-        part.color = part.ini_color * alpha;
-      }
-
-      part.life -= dt;
-      if (part.life < 0.0f)  // If Particle Is Burned Out
-        part.active = false;
+    // Create fire trail
+    int j = int(life * (kExplosionFireCount - 2) + 1 + cos(t * 10.0f));
+    Particle& part_fire = part_fire_[i * kExplosionFireCount + j];
+    if (!part_fire.active) {
+      part_fire.active = true;
+      part_fire.life = 0.7f * part_pink.life;
+      part_fire.pos = part_pink.pos;
     }
-
-    if (end_explode) Create();  // Re-create a new rocket.
   }
-  return true;
+
+  bool end_explode = true;
+  for (auto& part : part_fire_) {
+    if (!part.active) continue;
+
+    end_explode = false;
+
+    life = part.life / part.ini_life;
+
+    part.pos += part.speed * dt;
+    part.speed.y -= part.weight * dt;
+    part.size = part.ini_size * life * life;
+    if (life < 0.2f) {
+      alpha = life * 5.0f;
+      part.color = part.ini_color * alpha;
+    }
+
+    part.life -= dt;
+    if (part.life < 0.0f)  // If Particle Is Burned Out
+      part.active = false;
+  }
+
+  // Re-create a new rocket once the explosion is complete.
+  if (end_explode) Create();
 }
 
 void FireworkRocket::Explode() {
@@ -404,36 +291,33 @@ void FireworkRocket::Explode() {
   is_exploding_ = true;
 }
 
-Firework::Firework(GLuint texture) : texture_(texture) {}
+Firework::Firework(GLuint texture, int rocket_count)
+    : particle_shader_(texture, rocket_count * FireworkRocket::MaxParticles()),
+      rockets_(rocket_count) {}
 
 void Firework::Update(float dt) {
-  for (FireworkRocket& rocket : rockets_) rocket.Update(dt);
+  for (auto& rocket : rockets_) {
+    rocket.Update(dt);
+  }
 }
 
-void Firework::Render() const {
-  // Init GL
-  glBlendFunc(GL_ONE, GL_ONE);                                // Type Of Blending To Perform
-  if (texture_ != 0) glBindTexture(GL_TEXTURE_2D, texture_);  // Select Our Texture
+void Firework::Render(const glm::mat4& view_ignored, const glm::mat4& model_ignored,
+                      const glm::mat4& projection_ignored) const {
+  // We render the firework on top regardless of the camera view used during the game.
+  glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 120.0f));
+  glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -120.0f, -100.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                               glm::vec3(0.0f, 1.0f, 0.0f));
+  glm::mat4 projection = glm::perspective(glm::radians(45.0f),  // field of view in radians
+                                          4.0f / 3.0f,          // width/height of viewport
+                                          0.1f,                 // near plane
+                                          1000.0f);             // far plane
 
-  // Draw fireword
-  glLoadIdentity();
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glEnable(GL_TEXTURE_2D);
-  glDisable(GL_LIGHTING);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glEnableClientState(GL_COLOR_ARRAY);
-  glTranslatef(0.0f, 0.0f, -40.0f);
-  for (const FireworkRocket& rocket : rockets_) rocket.Render();
+  std::vector<ParticleShader::Particle> particles;
+  for (const auto& rocket : rockets_) {
+    rocket.AddParticles(particles);
+  }
 
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
-  glEnable(GL_LIGHTING);
-  glDisable(GL_BLEND);
-  glDisable(GL_TEXTURE_2D);
-  glEnable(GL_DEPTH_TEST);
+  particle_shader_.Render(model, view, projection, particles);
 }
 
 bool Firework::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {

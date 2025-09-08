@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
+
 class IObject {
  public:
   enum EEvent {
@@ -32,7 +34,7 @@ class IObject {
   };
 
   // Constructors
-  virtual ~IObject(){};
+  virtual ~IObject() {};
 
   // Operations
   /** Update the object.
@@ -42,7 +44,8 @@ class IObject {
 
   /** Render the object.
    */
-  virtual void Render() const = 0;
+  virtual void Render(const glm::mat4& view, const glm::mat4& model,
+                      const glm::mat4& projection) const = 0;
 
   /** Process event.
    * The object receive an event to process.

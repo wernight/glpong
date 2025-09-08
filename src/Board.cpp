@@ -22,12 +22,18 @@
 
 #include "Board.h"
 
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <vector>
+
+#include "Shader.h"
 
 constexpr float kBorderBevel = 4.0f;
 constexpr float kBorderWidth = 4.0f;
 
-constexpr float kIlluminate_Duration = 0.5f;
+constexpr float kIlluminateDuration = 0.5f;
 
 constexpr float kDigitHeight = 20.0f;
 constexpr float kDigitWidth = 12.0f;
@@ -36,6 +42,72 @@ constexpr float kDigitInnerSpacing = 0.6f;
 constexpr float kDigitSpacing = 3.0f;
 
 namespace {
+const char* kBoardVertexShader = R"glsl(
+#version 130
+attribute vec3 aPos;
+attribute vec3 aNormal;
+
+uniform mat4 modelview;
+uniform mat4 projection;
+
+varying vec3 Normal;
+varying vec3 FragPos;
+
+void main()
+{
+    gl_Position = projection * modelview * vec4(aPos, 1.0);
+    FragPos = vec3(modelview * vec4(aPos, 1.0));
+    Normal = mat3(modelview) * aNormal;
+}
+)glsl";
+
+const char* kBoardFragmentShader = R"glsl(
+#version 130
+varying vec3 Normal;
+varying vec3 FragPos;
+
+uniform vec3 objectColor;
+
+uniform vec3 lightPos;
+uniform vec3 lightAmbient;
+uniform vec3 lightDiffuse;
+
+void main()
+{
+    vec3 ambient = lightAmbient * objectColor;
+
+    vec3 norm = normalize(Normal);
+    vec3 lightDir = normalize(lightPos - FragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = lightDiffuse * diff * objectColor;
+
+    gl_FragColor = vec4(ambient + diffuse, 1.0);
+}
+)glsl";
+
+const char* kDigitVertexShader = R"glsl(
+#version 130
+attribute vec2 aPos;
+
+uniform mat4 modelview;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * modelview * vec4(aPos, 0.0, 1.0);
+}
+)glsl";
+
+const char* kDigitFragmentShader = R"glsl(
+#version 130
+uniform vec3 objectColor;
+
+void main()
+{
+    gl_FragColor = vec4(objectColor, 1.0);
+}
+)glsl";
+
 struct Vertex {
   GLfloat position[3];
   GLfloat normal[3];
@@ -48,6 +120,9 @@ Board::Board()
       illuminate_left_border_(0.0f),
       illuminate_right_border_(0.0f),
       is_game_over_(false) {
+  board_shader_ = std::make_unique<Shader>(kBoardVertexShader, kBoardFragmentShader);
+  digit_shader_ = std::make_unique<Shader>(kDigitVertexShader, kDigitFragmentShader);
+
   // --- Board geometry
   std::vector<Vertex> vertices;
   // Ground
@@ -125,19 +200,31 @@ Board::Board()
            {0.0f, -1.0f, 0.0f}},
       });
 
+  board_shader_->Use();
   glGenVertexArrays(1, &vao_);
   glGenBuffers(1, &vbo_);
   glBindVertexArray(vao_);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_);
   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, position));
-  glEnableClientState(GL_NORMAL_ARRAY);
-  glNormalPointer(GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, normal));
+  GLint posAttrib = board_shader_->GetAttributeLocation("aPos");
+  glEnableVertexAttribArray(posAttrib);
+  glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void*)offsetof(Vertex, position));
+  GLint normalAttrib = board_shader_->GetAttributeLocation("aNormal");
+  glEnableVertexAttribArray(normalAttrib);
+  glVertexAttribPointer(normalAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void*)offsetof(Vertex, normal));
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
   // --- Digits geometry
+  /*                                                    f
+   __        __   __        __   __   __   __   __    a   e  _
+  |  |    |  __|  __| |__| |__  |__     | |__| |__|     g   |_|
+  |__|    | |__   __|    |  __| |__|    | |__|  __|   b   d |_|
+                                                        c
+  */
+  digit_shader_->Use();
   for (int i = 0; i < kDigits; ++i) {
     std::vector<GLfloat> digit_vertices;
     bool a, b, c, d, e, f, g;
@@ -297,8 +384,9 @@ Board::Board()
     glBindBuffer(GL_ARRAY_BUFFER, digit_vbos_[i]);
     glBufferData(GL_ARRAY_BUFFER, digit_vertices.size() * sizeof(GLfloat), digit_vertices.data(),
                  GL_STATIC_DRAW);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(2, GL_FLOAT, 0, 0);
+    GLint digitPosAttrib = digit_shader_->GetAttributeLocation("aPos");
+    glEnableVertexAttribArray(digitPosAttrib);
+    glVertexAttribPointer(digitPosAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
   }
@@ -318,61 +406,71 @@ void Board::Reset() {
   is_game_over_ = false;
 }
 
-void Board::Update(float fTime) {
+void Board::Update(float dt) {
   // Illumination.
   if (illuminate_left_border_ > 0.0f)
-    illuminate_left_border_ -= fTime;
+    illuminate_left_border_ -= dt;
   else
     illuminate_left_border_ = 0.0f;
 
   if (illuminate_right_border_ > 0.0f)
-    illuminate_right_border_ -= fTime;
+    illuminate_right_border_ -= dt;
   else
     illuminate_right_border_ = 0.0f;
 }
 
-void Board::Render() const {
+void Board::Render(const glm::mat4& view, const glm::mat4& model,
+                   const glm::mat4& projection) const {
+  board_shader_->Use();
+  board_shader_->SetUniform("projection", projection);
+  board_shader_->SetUniform("modelview", model * view);
+  board_shader_->SetUniform("lightPos", glm::vec3(30.0f, 50.0f, -100.0f));
+  board_shader_->SetUniform("lightAmbient", glm::vec3(0.5f, 0.5f, 0.5f));
+  board_shader_->SetUniform("lightDiffuse", glm::vec3(1.0f, 1.0f, 1.0f));
+
   glBindVertexArray(vao_);
 
   // Ground
-  glColor3f(0.0f, 0.15f, 0.0f);
+  board_shader_->SetUniform("objectColor", glm::vec3(0.0f, 0.15f, 0.0f));
   glDrawArrays(GL_QUADS, 0, 4);
 
-  glColor3f(0.0f, 0.4f, 0.0f);
   // Border top
+  board_shader_->SetUniform("objectColor", glm::vec3(0.0f, 0.4f, 0.0f));
   glDrawArrays(GL_QUADS, 4, 8);
 
   // Border left
-  glColor3f(0.0f + illuminate_left_border_, 0.4f + illuminate_left_border_,
-            0.0f + illuminate_left_border_);
+  board_shader_->SetUniform(
+      "objectColor", glm::vec3(0.0f + illuminate_left_border_, 0.4f + illuminate_left_border_,
+                               0.0f + illuminate_left_border_));
   glDrawArrays(GL_QUADS, 12, 8);
 
   // Border right
-  glColor3f(0.0f + illuminate_right_border_, 0.4f + illuminate_right_border_,
-            0.0f + illuminate_right_border_);
+  board_shader_->SetUniform(
+      "objectColor", glm::vec3(0.0f + illuminate_right_border_, 0.4f + illuminate_right_border_,
+                               0.0f + illuminate_right_border_));
   glDrawArrays(GL_QUADS, 20, 8);
 
   // Border bottom
-  glColor3f(0.0f, 0.4f, 0.0f);
+  board_shader_->SetUniform("objectColor", glm::vec3(0.0f, 0.4f, 0.0f));
   glDrawArrays(GL_QUADS, 28, 8);
 
   glBindVertexArray(0);
 
   // Draw score
-  glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
 
-  glPushMatrix();
-  glTranslatef(30.0f + kDigitWidth, GetTop() + 20.0f, 0.0f);
-  DrawDigitNumber(left_score_);
-  glPopMatrix();
+  digit_shader_->Use();
+  digit_shader_->SetUniform("projection", projection);
+  digit_shader_->SetUniform("objectColor", glm::vec3(0.0f, 0.4f, 0.0f));
 
-  glPushMatrix();
-  glTranslatef(-30.0f, GetTop() + 20.0f, 0.0f);
-  DrawDigitNumber(right_score_);
-  glPopMatrix();
+  glm::mat4 left_score_modelview =
+      glm::translate(model * view, glm::vec3(30.0f + kDigitWidth, GetTop() + 20.0f, 0.0f));
+  DrawDigitNumber(left_score_, left_score_modelview);
 
-  glEnable(GL_LIGHTING);
+  glm::mat4 right_score_modelview =
+      glm::translate(model * view, glm::vec3(-30.0f, GetTop() + 20.0f, 0.0f));
+  DrawDigitNumber(right_score_, right_score_modelview);
+
   glEnable(GL_DEPTH_TEST);
 }
 
@@ -381,15 +479,15 @@ bool Board::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lPar
 }
 
 void Board::Score(bool is_left_player) {
-  int *score;
+  int* score;
 
   // Left or right player?
   if (is_left_player) {
     score = &left_score_;
-    illuminate_left_border_ = kIlluminate_Duration;
+    illuminate_left_border_ = kIlluminateDuration;
   } else {
     score = &right_score_;
-    illuminate_right_border_ = kIlluminate_Duration;
+    illuminate_right_border_ = kIlluminateDuration;
   }
 
   // Update player's score.
@@ -404,25 +502,13 @@ void Board::Score(bool is_left_player) {
   }
 }
 
-void Board::DrawDigitNumber(int number) const {
-  /*                                                   f
-   __        __   __        __   __   __   __   __   a   e  _
-  |  |    |  __|  __| |__| |__  |__     | |__| |__|    g   |_|
-  |__|    | |__   __|    |  __| |__|    | |__|  __|  b   d | |
-                                                       c
-  */
-  if (number == 0) {
-    glBindVertexArray(digit_vaos_[0]);
-    glDrawArrays(GL_QUADS, 0, digit_vertex_counts_[0]);
-    glBindVertexArray(0);
-    return;
-  }
-
+void Board::DrawDigitNumber(int number, glm::mat4 modelview) const {
   do {
     int digit = number % 10;
+    digit_shader_->SetUniform("modelview", modelview);
     glBindVertexArray(digit_vaos_[digit]);
     glDrawArrays(GL_QUADS, 0, digit_vertex_counts_[digit]);
     glBindVertexArray(0);
-    glTranslatef(kDigitWidth + kDigitSpacing, 0.0f, 0.0f);
+    modelview = glm::translate(modelview, glm::vec3(kDigitWidth + kDigitSpacing, 0.0f, 0.0f));
   } while ((number /= 10) != 0);
 }

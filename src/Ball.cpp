@@ -15,15 +15,18 @@
  */
 
 /**
- * Copyright (c) 2003 Werner BEROUX
+ * Copyright (c) 2003-2024 Werner BEROUX
  * Mail: werner@beroux.com
  * Web : www.beroux.com
  */
 
 #include "Ball.h"
 
+#include <GL/gl.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <vector>
 
 constexpr float kBallSpeed = 110.0f;
@@ -31,67 +34,13 @@ constexpr float kBallSpeedIncrease = 5.0f;
 constexpr float kBallRadius = 2.0f;
 constexpr float kBallMaxAngle = M_PI / 3.0f;  // y = a*x
 constexpr float kBallMinAngle = M_PI / 7.0f;  // y = a*x
-constexpr float kPartSize = 1.7f;
-
-namespace {
-struct Vertex {
-  glm::vec3 position;
-  glm::vec3 normal;
-};
-
-struct ParticleVertex {
-  glm::vec3 position;
-  glm::vec2 texcoord;
-};
-
-std::vector<Vertex> generateSphere(float radius, int rings, int sectors) {
-  float const R = 1. / (float)(rings - 1);
-  float const S = 1. / (float)(sectors - 1);
-
-  std::vector<Vertex> vertices(rings * sectors * 6);
-
-  for (int r = 0; r < rings - 1; r++) {
-    for (int s = 0; s < sectors - 1; s++) {
-      float const y0 = sin(-M_PI_2 + M_PI * r * R);
-      float const x0 = cos(2 * M_PI * s * S) * sin(M_PI * r * R);
-      float const z0 = sin(2 * M_PI * s * S) * sin(M_PI * r * R);
-
-      float const y1 = sin(-M_PI_2 + M_PI * (r + 1) * R);
-      float const x1 = cos(2 * M_PI * s * S) * sin(M_PI * (r + 1) * R);
-      float const z1 = sin(2 * M_PI * s * S) * sin(M_PI * (r + 1) * R);
-
-      float const y2 = sin(-M_PI_2 + M_PI * r * R);
-      float const x2 = cos(2 * M_PI * (s + 1) * S) * sin(M_PI * r * R);
-      float const z2 = sin(2 * M_PI * (s + 1) * S) * sin(M_PI * r * R);
-
-      float const y3 = sin(-M_PI_2 + M_PI * (r + 1) * R);
-      float const x3 = cos(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
-      float const z3 = sin(2 * M_PI * (s + 1) * S) * sin(M_PI * (r + 1) * R);
-
-      glm::vec3 v0(x0, y0, z0);
-      glm::vec3 v1(x1, y1, z1);
-      glm::vec3 v2(x2, y2, z2);
-      glm::vec3 v3(x3, y3, z3);
-
-      vertices.push_back({v0 * radius, v0});
-      vertices.push_back({v1 * radius, v1});
-      vertices.push_back({v2 * radius, v2});
-
-      vertices.push_back({v1 * radius, v1});
-      vertices.push_back({v3 * radius, v3});
-      vertices.push_back({v2 * radius, v2});
-    }
-  }
-  return vertices;
-}
-}  // namespace
 
 Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
            std::shared_ptr<Paddle> right_paddle, GLuint texture)
     : board_(board),
       left_paddle_(left_paddle),
       right_paddle_(right_paddle),
-      texture_(texture),
+      particle_shader_(texture, particles_.size()),
       gen_(std::random_device()()),
       fade_dist_(3.0f, 28.0f) {
   // Create a new ball.
@@ -100,52 +49,16 @@ Ball::Ball(std::shared_ptr<Board> board, std::shared_ptr<Paddle> left_paddle,
   NewBall(go_left);
 
   // Init particles.
-  for (auto &part : particles_) {
+  for (auto& part : particles_) {
     part.life = 1.0f;
     part.fade = fade_dist_(gen_);  // Random Fade Value
     part.pos.x = ball_speed_.x;
     part.pos.y = ball_speed_.y;
     part.pos.z = -kBallRadius;
   }
-
-  // Ball sphere
-  std::vector<Vertex> vertices = generateSphere(kBallRadius, 7, 5);
-  sphere_vertex_count_ = vertices.size();
-
-  glGenVertexArrays(1, &sphere_vao_);
-  glGenBuffers(1, &sphere_vbo_);
-  glBindVertexArray(sphere_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, sphere_vbo_);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, position));
-  glEnableClientState(GL_NORMAL_ARRAY);
-  glNormalPointer(GL_FLOAT, sizeof(Vertex), (void *)offsetof(Vertex, normal));
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
-  // Particles
-  glGenVertexArrays(1, &particles_vao_);
-  glGenBuffers(1, &particles_vbo_);
-  glBindVertexArray(particles_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, particles_vbo_);
-  glBufferData(GL_ARRAY_BUFFER, particles_.size() * 6 * sizeof(ParticleVertex), nullptr,
-               GL_DYNAMIC_DRAW);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3, GL_FLOAT, sizeof(ParticleVertex), (void *)offsetof(ParticleVertex, position));
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glTexCoordPointer(2, GL_FLOAT, sizeof(ParticleVertex),
-                    (void *)offsetof(ParticleVertex, texcoord));
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
 }
 
-Ball::~Ball() {
-  if (sphere_vao_) glDeleteVertexArrays(1, &sphere_vao_);
-  if (sphere_vbo_) glDeleteBuffers(1, &sphere_vbo_);
-  if (particles_vao_) glDeleteVertexArrays(1, &particles_vao_);
-  if (particles_vbo_) glDeleteBuffers(1, &particles_vbo_);
-}
+Ball::~Ball() {}
 
 void Ball::Update(float dt) {
   glm::vec2 new_ball_pos(ball_position_ + ball_speed_ * dt);
@@ -226,7 +139,7 @@ void Ball::Update(float dt) {
 
   // Particles.
   std::uniform_real_distribution<float> pos_dist(-kBallRadius * 0.5f, kBallRadius * 0.5f);
-  for (auto &part : particles_) {
+  for (auto& part : particles_) {
     // Reduce Particles Life By 'Fade'
     part.life -= part.fade * dt;
 
@@ -241,66 +154,20 @@ void Ball::Update(float dt) {
   }
 }
 
-void Ball::Render() const {
-  // Ball
-  glPushMatrix();
-  glTranslatef(ball_position_.x, ball_position_.y, -kBallRadius);
-  glColor3f(0.0f, 1.0f, 0.0f);
-  glBindVertexArray(sphere_vao_);
-  glDrawArrays(GL_TRIANGLES, 0, sphere_vertex_count_);
-  glBindVertexArray(0);
-  glPopMatrix();
+void Ball::Render(const glm::mat4& model, const glm::mat4& view,
+                  const glm::mat4& projection) const {
+  auto color = glm::vec3(0.0f, 1.0f, 0.0f);
 
-  // Particules
-  if (texture_ != 0) glBindTexture(GL_TEXTURE_2D, texture_);
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-  glDisable(GL_LIGHTING);
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
+  std::vector<ParticleShader::Particle> shader_particles;
+  shader_particles.reserve(particles_.size());
+  constexpr float kPartSize = 1.7f;
+  for (const auto& part : particles_) {
+    if (part.life <= 0.0f) continue;
 
-  std::vector<ParticleVertex> vertices;
-  vertices.reserve(particles_.size() * 6);
-
-  glm::mat4 model_view;
-  glGetFloatv(GL_MODELVIEW_MATRIX, &model_view[0][0]);
-  glm::vec3 right(model_view[0][0], model_view[1][0], model_view[2][0]);
-  glm::vec3 up(model_view[0][1], model_view[1][1], model_view[2][1]);
-
-  for (auto &part : particles_) {
-    float ps = part.life * kPartSize;
-    glm::vec3 center = part.pos;
-
-    glm::vec3 tl = center - (right + up) * ps;
-    glm::vec3 tr = center + (right - up) * ps;
-    glm::vec3 br = center + (right + up) * ps;
-    glm::vec3 bl = center - (right - up) * ps;
-
-    vertices.push_back({tl, {0, 1}});
-    vertices.push_back({br, {1, 0}});
-    vertices.push_back({tr, {1, 1}});
-    vertices.push_back({tl, {0, 1}});
-    vertices.push_back({bl, {0, 0}});
-    vertices.push_back({br, {1, 0}});
+    shader_particles.push_back({part.pos, part.life * kPartSize, color});
   }
 
-  glColor3f(0.0f, 1.0f, 0.0f);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glBindVertexArray(particles_vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, particles_vbo_);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(ParticleVertex), vertices.data());
-  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-  glDisableClientState(GL_VERTEX_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-  glDisable(GL_TEXTURE_2D);
-  glDisable(GL_BLEND);
-  glEnable(GL_LIGHTING);
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
+  particle_shader_.Render(model, view, projection, shader_particles);
 }
 
 bool Ball::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) { return false; }

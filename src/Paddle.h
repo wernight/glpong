@@ -24,7 +24,12 @@
 
 #include <GL/glew.h>
 
+#include <glm/glm.hpp>
+#include <memory>
+
 #include "IObject.h"
+
+class Shader;
 
 class Paddle : public IObject {
  public:
@@ -37,7 +42,8 @@ class Paddle : public IObject {
   void Update(float fTime) override;
 
   // Render the object.
-  void Render() const override;
+  void Render(const glm::mat4& view, const glm::mat4& model,
+              const glm::mat4& projection) const override;
 
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
@@ -71,4 +77,5 @@ class Paddle : public IObject {
   GLuint vao_ = 0;
   GLuint vbo_ = 0;
   int vertex_count_ = 0;
+  std::unique_ptr<Shader> shader_;
 };

@@ -31,7 +31,12 @@
 
 #include "GLPong.h"
 
+#include <SDL2/SDL.h>
+
 #include <filesystem>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 #include <memory>
 
 #include "AiPaddle.h"
@@ -54,21 +59,6 @@ static bool UserInputBoolean() {
   std::string input;
   std::cin >> input;
   return !input.empty() && tolower(input[0]) == 'y';
-}
-
-// Resize And Initialize The GL Window
-static void ReSizeGLScene(GLsizei width, GLsizei height) {
-  if (height == 0)  // Prevent A Divide By Zero By
-    height = 1;     // Making Height Equal One
-
-  glViewport(0, 0, width, height);
-
-  glMatrixMode(GL_PROJECTION);  // Select The Projection Matrix
-  glLoadIdentity();             // Reset The Projection Matrix
-  gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 1, 1000);
-
-  glMatrixMode(GL_MODELVIEW);  // Select The Modelview Matrix
-  glLoadIdentity();            // Reset The Modelview Matrix
 }
 
 // Load Bitmaps And Convert To Textures
@@ -168,7 +158,7 @@ GLPong::GLPong() {
   InitGL(vs_ai);
 
   // resize the initial window
-  ReSizeGLScene(kWidth, kHeight);
+  glViewport(0, 0, kWidth, kHeight);
 }
 
 GLPong::~GLPong() {
@@ -184,7 +174,7 @@ void GLPong::ProcessEvents() {
     switch (sdl_event.type) {
       case SDL_WINDOWEVENT:
         if (sdl_event.window.event == SDL_WINDOWEVENT_RESIZED)
-          ReSizeGLScene(sdl_event.window.data1, sdl_event.window.data2);
+          glViewport(0, 0, sdl_event.window.data1, sdl_event.window.data2);
         break;
 
       case SDL_KEYDOWN:
@@ -280,36 +270,37 @@ void GLPong::DrawFPS() {
 
   frames++;
   if (current_ticks - start_ticks >= 5000) {
-    GLfloat fSeconds = (current_ticks - start_ticks) / 1000.0f;
-    GLfloat fFPS = frames / fSeconds;
-    std::cout << frames << " frames in " << fSeconds << " seconds = " << fFPS << " FPS"
-              << std::endl;
+    GLfloat seconds = (current_ticks - start_ticks) / 1000.0f;
+    GLfloat fps = frames / seconds;
+    std::cout << frames << " frames in " << seconds << " seconds = " << fps << " FPS" << std::endl;
     start_ticks = current_ticks;
     frames = 0;
   }
 }
 
 void GLPong::DrawGLScene() {
-  // Clear The Screen And The Depth Buffer
+  // Clear the screen and the depth buffer.
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  // Reset The Modelview Matrix
-  glLoadIdentity();
 
-  // Loocking to...
-#if true
-  // 3D Look.
-  gluLookAt(0, -120, -100, 0, 0, 0, 0, 1, 0);
-#else
-  // 2D Look.
-  gluLookAt(0, 17, -180, 0, 17, 0, 0, 1, 0);
-#endif
+  glm::mat4 model = glm::mat4(1.0f);
+
+  glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -120.0f, -100.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                               glm::vec3(0.0f, 1.0f, 0.0f));
+
+  glm::mat4 projection = glm::perspective(glm::radians(45.0f),  // field of view in radians
+                                          4.0f / 3.0f,          // width/height of viewport
+                                          0.1f,                 // near plane
+                                          1000.0f);             // far plane
 
   // Scene manager
-  scene_.Render();
+  scene_.Render(model, view, projection);
 }
 
 // All Setup For OpenGL Goes Here
 void GLPong::InitGL(bool vs_ai) {
+  particle_texture_ = LoadGLTextures(GetResourcePath("particle.png").c_str());
+  star_texture_ = LoadGLTextures(GetResourcePath("small_blur_star.png").c_str());
+
   std::shared_ptr<AiPaddle> ai_paddle = std::make_shared<AiPaddle>(true);
   std::shared_ptr<Paddle> paddle_left = vs_ai ? ai_paddle : std::make_shared<Paddle>(true);
   auto paddle_right = std::make_shared<Paddle>(false);
@@ -317,31 +308,12 @@ void GLPong::InitGL(bool vs_ai) {
   ball_ = std::make_shared<Ball>(board_, paddle_left, paddle_right, particle_texture_);
   ai_paddle->TrackBall(ball_);
 
-  constexpr GLfloat LightAmbient[] = {0.5f, 0.5f, 0.5f, 1.0f};
-  constexpr GLfloat LightDiffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};
-
-  particle_texture_ = LoadGLTextures(GetResourcePath("particle.png").c_str());
-  star_texture_ = LoadGLTextures(GetResourcePath("small_blur_star.png").c_str());
-
-  glShadeModel(GL_SMOOTH);               // Enable Smooth Shading
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // Black Background
-  glClearDepth(1.0f);                    // Depth Buffer Setup
+  glClearDepth(1.0f);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
-
-  // Lumières
-  GLfloat LightPosition[] = {30.0f, 50.0f, -100.0f, 1.0f};
-  glLightfv(GL_LIGHT1, GL_POSITION, LightPosition);  // Position The Light
-
-  glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient);  // Setup The Ambient Light
-  glLightfv(GL_LIGHT1, GL_DIFFUSE, LightDiffuse);  // Setup The Diffuse Light
-  glEnable(GL_LIGHT1);                             // Enable Light One
-  glEnable(GL_LIGHTING);                           // Enable Light One
-  glEnable(GL_COLOR_MATERIAL);
-  glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-  glBlendFunc(GL_ONE, GL_ONE);
 
   // Scene manager.
   scene_.AddObject(board_);

@@ -25,8 +25,12 @@
 #include <GL/glew.h>
 
 #include <array>
+#include <glm/mat4x4.hpp>
+#include <memory>
 
 #include "IObject.h"
+
+class Shader;
 
 class Board : public IObject {
  public:
@@ -40,7 +44,8 @@ class Board : public IObject {
   void Update(float dt) override;
 
   // Render the object.
-  void Render() const override;
+  void Render(const glm::mat4& view, const glm::mat4& model,
+              const glm::mat4& projection) const override;
 
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
@@ -59,7 +64,7 @@ class Board : public IObject {
   void Score(bool left_player);
 
  private:
-  void DrawDigitNumber(int number) const;
+  void DrawDigitNumber(int number, glm::mat4 modelview) const;
 
   int left_score_;
   int right_score_;
@@ -74,4 +79,7 @@ class Board : public IObject {
   std::array<GLuint, kDigits> digit_vaos_ = {0};
   std::array<GLuint, kDigits> digit_vbos_ = {0};
   std::array<int, kDigits> digit_vertex_counts_ = {0};
+
+  std::unique_ptr<Shader> board_shader_;
+  std::unique_ptr<Shader> digit_shader_;
 };

@@ -36,7 +36,7 @@ class AiPaddle : public Paddle {
 
   // Overrides
   // Update the object.
-  void Update(float fTime) override;
+  void Update(float dt) override;
 
   // Process event.
   bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
