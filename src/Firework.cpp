@@ -34,7 +34,6 @@
 #include <vector>
 
 #include "RandomMT.h"
-#include "StdAfx.h"
 
 constexpr int kColorCount = 12;
 constexpr int kColorCount2 = 6;

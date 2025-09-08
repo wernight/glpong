@@ -24,8 +24,6 @@
 
 #include <vector>
 
-#include "StdAfx.h"
-
 constexpr float kBorderBevel = 4.0f;
 constexpr float kBorderWidth = 4.0f;
 

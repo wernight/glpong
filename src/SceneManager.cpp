@@ -11,8 +11,6 @@
 
 #include <memory>
 
-#include "StdAfx.h"
-
 SceneManager::SceneManager(void) {}
 
 SceneManager::~SceneManager(void) {}

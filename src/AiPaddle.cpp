@@ -25,7 +25,6 @@
 #include <glm/glm.hpp>
 
 #include "Board.h"
-#include "StdAfx.h"
 
 // Constructor
 AiPaddle::AiPaddle(bool is_left_paddel) : Paddle(is_left_paddel) {}

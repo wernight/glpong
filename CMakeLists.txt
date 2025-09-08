@@ -12,6 +12,8 @@ file(GLOB_RECURSE sourceFiles
 )
 add_executable(glpong ${sourceFiles})
 
+target_precompile_headers(glpong PUBLIC src/pch.h)
+
 target_link_libraries(glpong
     PRIVATE
         OpenGL::GL

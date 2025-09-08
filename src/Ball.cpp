@@ -26,8 +26,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
-#include "StdAfx.h"
-
 constexpr float kBallSpeed = 110.0f;
 constexpr float kBallSpeedIncrease = 5.0f;
 constexpr float kBallRadius = 2.0f;

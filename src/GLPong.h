@@ -28,7 +28,6 @@
 #include "Board.h"
 #include "Firework.h"
 #include "SceneManager.h"
-#include "StdAfx.h"
 
 class GLPong {
  public:

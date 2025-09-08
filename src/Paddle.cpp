@@ -25,7 +25,6 @@
 #include <vector>
 
 #include "Board.h"
-#include "StdAfx.h"
 
 constexpr float kPaddleBevel = 4.0f;
 constexpr float kPaddleSpeed = 150.0f;

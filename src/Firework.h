@@ -28,7 +28,6 @@
 
 #include "IObject.h"
 #include "RandomMT.h"
-#include "StdAfx.h"
 
 class FireworkRocket {
   // Construction

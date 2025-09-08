@@ -1,5 +1,4 @@
 #include "GLPong.h"
-#include "StdAfx.h"
 
 int main(int argc, char* argv[]) {
   try {

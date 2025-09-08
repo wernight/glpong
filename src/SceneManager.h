@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "IObject.h"
-#include "StdAfx.h"
 
 class SceneManager : public IObject {
   // Constructors
