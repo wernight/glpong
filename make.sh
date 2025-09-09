@@ -59,5 +59,7 @@ emcc src/*.cpp \
     --preload-file ${CODEDIR}/res/small_blur_star.png@small_blur_star.png \
     --emrun
 
-cd ${WASMDIR}
-exec emrun --no_browser --hostname 0.0.0.0 --port 8080 glpong.html
+if [ "$1" == "--emrun" ]; then
+    cd ${WASMDIR}
+    exec emrun --no_browser --hostname 0.0.0.0 --port 8080 glpong.html
+fi

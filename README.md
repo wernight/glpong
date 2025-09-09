@@ -27,17 +27,24 @@ This game uses OpenGL, GLU and SDL.
 
 # Compilation
 
-Building the AppImage and  WebAssembly using Docker:
+## Using Docker
+
+Building the AppImage and WebAssembly using containers:
 
     $ docker compose build
-    $ docker compose down --remove-orphans
-    $ docker compose up
+    $ docker compose run --rm glpong
 
-Then either go to http://localhost:8080/glpong.html or run
+The binaries will be generated in the `bin/` folder.
 
-    $ bin/GLPong-x86_64.AppImage
+To build and start the Emscripten (WebAssembly) web server,
+open in browser http://localhost:8080/glpong.html after running:
 
-Alternatively, you may use CMake directly:
+    $ docker compose build
+    $ docker compose run --rm --service-ports glpong ./make.sh --emrun
+
+## Manually using CMake
+
+Alternatively, you may build using CMake directly:
 
     $ mkdir build
     $ cd build_
