@@ -192,9 +192,12 @@ void GLPong::ProcessEvents() {
       case SDL_KEYDOWN:
         switch (sdl_event.key.keysym.sym) {
           case SDLK_ESCAPE:
+#ifndef __EMSCRIPTEN__
             SDL_Quit();
             game_is_still_running_ = false;
             return;
+#endif
+            break;
           case SDLK_F1: {
             Uint32 flags = SDL_GetWindowFlags(sdl_window_);
             if (flags & SDL_WINDOW_FULLSCREEN)
