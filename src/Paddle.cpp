@@ -27,6 +27,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
+#include "Ball.h"
 #include "Board.h"
 #include "Shader.h"
 
@@ -169,14 +170,40 @@ Paddle::Paddle(bool is_left_paddle)
   glBindVertexArray(0);
 }
 
+void Paddle::TrackBall(std::shared_ptr<Ball> ball) { ball_ = ball; }
+
 Paddle::~Paddle() {
   if (vao_) glDeleteVertexArrays(1, &vao_);
   if (vbo_) glDeleteBuffers(1, &vbo_);
 }
 
-void Paddle::Update(float fTime) {
+void Paddle::Update(float dt) {
+  total_time_ += dt;
+  time_since_last_input_ += dt;
+
+  if (ball_ && time_since_last_input_ > 8.0f) {
+    // AI logic from AiPaddle::Update
+    glm::vec2 ball_pos = ball_->GetPosition();
+    float ball_distance;
+    if (left_paddle_)
+      ball_distance = Board::GetLeft() - ball_pos.x;
+    else
+      ball_distance = ball_pos.x - Board::GetRight();
+
+    float rnd = 0.5f * GetHeight() * cos(total_time_ * 6.0f);
+
+    if (ball_distance > 0.75f * Board::GetWidth())
+      speed_ = 0.0f;  // Stop()
+    else if (y_ < ball_pos.y - 0.2f * GetHeight() + rnd)
+      speed_ = kPaddleSpeed;  // MoveUp()
+    else if (y_ > ball_pos.y + 0.2f * GetHeight() + rnd)
+      speed_ = -kPaddleSpeed;  // MoveDown()
+    else
+      speed_ = 0.0f;  // Stop()
+  }
+
   // Update paddle position.
-  y_ += speed_ * fTime;
+  y_ += speed_ * dt;
   if (y_ > Board::GetTop() - GetHeight() / 2.0f) {
     y_ = Board::GetTop() - GetHeight() / 2.0f;
     ;
@@ -189,7 +216,7 @@ void Paddle::Update(float fTime) {
 
   // Fade hightlight.
   if (illuminate_ > 0.0f)
-    illuminate_ -= kPaddleIlluminateFade * fTime;
+    illuminate_ -= kPaddleIlluminateFade * dt;
   else
     illuminate_ = 0.0f;
 }
@@ -219,9 +246,11 @@ bool Paddle::ProcessEvent(const SDL_Event& event) {
       case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_LSHIFT) {
           MoveUp();
+          time_since_last_input_ = 0.0f;
           return true;
         } else if (event.key.keysym.sym == SDLK_q || event.key.keysym.sym == SDLK_LCTRL) {
           MoveDown();
+          time_since_last_input_ = 0.0f;
           return true;
         }
         break;
@@ -229,14 +258,15 @@ bool Paddle::ProcessEvent(const SDL_Event& event) {
         if (event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_q ||
             event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_LCTRL) {
           Stop();
+          time_since_last_input_ = 0.0f;
           return true;
         }
         break;
 
       case SDL_FINGERMOTION:
       case SDL_FINGERDOWN: {
-        SDL_Window* window = SDL_GetWindowFromID(event.tfinger.windowID);
         if (event.tfinger.x < 0.5f) {
+          time_since_last_input_ = 0.0f;
           // Left half of the screen
           if (event.tfinger.y < 0.5f) {
             // Top half -> move up
@@ -249,8 +279,8 @@ bool Paddle::ProcessEvent(const SDL_Event& event) {
         break;
       }
       case SDL_FINGERUP: {
-        SDL_Window* window = SDL_GetWindowFromID(event.tfinger.windowID);
         if (event.tfinger.x < 0.5f) {
+          time_since_last_input_ = 0.0f;
           // Left half of the screen
           Stop();
         }
@@ -263,15 +293,18 @@ bool Paddle::ProcessEvent(const SDL_Event& event) {
       case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_UP) {
           MoveUp();
+          time_since_last_input_ = 0.0f;
           return true;
         } else if (event.key.keysym.sym == SDLK_DOWN) {
           MoveDown();
+          time_since_last_input_ = 0.0f;
           return true;
         }
         break;
       case SDL_KEYUP:
         if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_DOWN) {
           Stop();
+          time_since_last_input_ = 0.0f;
           return true;
         }
         break;
@@ -279,6 +312,7 @@ bool Paddle::ProcessEvent(const SDL_Event& event) {
       case SDL_FINGERMOTION:
       case SDL_FINGERDOWN: {
         if (event.tfinger.x > 0.5f) {
+          time_since_last_input_ = 0.0f;
           // Right half of the screen
           if (event.tfinger.y < 0.5f) {
             // Top half -> move up
@@ -292,6 +326,7 @@ bool Paddle::ProcessEvent(const SDL_Event& event) {
       }
       case SDL_FINGERUP: {
         if (event.tfinger.x > 0.5f) {
+          time_since_last_input_ = 0.0f;
           // Right half of the screen
           Stop();
         }

@@ -30,6 +30,7 @@
 #include "IObject.h"
 
 class Shader;
+class Ball;
 
 class Paddle : public IObject {
  public:
@@ -47,6 +48,8 @@ class Paddle : public IObject {
 
   // Process event.
   bool ProcessEvent(const SDL_Event& event) override;
+
+  void TrackBall(std::shared_ptr<Ball> ball);
 
   // Attributes
   static const float GetWidth() { return 6.0f; }
@@ -78,4 +81,8 @@ class Paddle : public IObject {
   GLuint vbo_ = 0;
   int vertex_count_ = 0;
   std::unique_ptr<Shader> shader_;
+  std::shared_ptr<Ball> ball_;
+  // We start assuming that there was no human input.
+  float time_since_last_input_ = 99.0f;
+  float total_time_ = 0.0f;
 };

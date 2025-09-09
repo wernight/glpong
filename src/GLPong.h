@@ -43,7 +43,7 @@ class GLPong {
   void Draw();
   void DrawFPS();
   void DrawGLScene();
-  void InitGL(bool vs_ai);
+  void InitGL();
   void UpdateScene(float t);
 
   SceneManager scene_;

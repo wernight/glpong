@@ -42,7 +42,6 @@
 #include <iostream>
 #include <memory>
 
-#include "AiPaddle.h"
 #include "Paddle.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -59,14 +58,10 @@ static std::filesystem::path GetResourcePath(const std::string& relative) {
   return std::filesystem::path(appdir) / relative;
 }
 
-static bool UserInputBoolean(bool default_value) {
-#ifdef __EMSCRIPTEN__
-  return default_value;
-#else
+static bool UserInputBoolean() {
   std::string input;
   std::cin >> input;
   return !input.empty() && tolower(input[0]) == 'y';
-#endif
 }
 
 // Load Bitmaps And Convert To Textures
@@ -122,15 +117,13 @@ GLPong::GLPong() {
   videoFlags |= SDL_WINDOW_RESIZABLE;  // Enable window resizing
 
   // Full-screen?
+#ifndef __EMSCRIPTEN__
   std::cout << "Full-screen mode [Y/N]?";
-  if (UserInputBoolean(false)) {
+  if (UserInputBoolean()) {
     videoFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;  // Enable full-screen mode
     SDL_ShowCursor(SDL_DISABLE);
   }
-
-  // Versus AI?
-  std::cout << "Play against AI [Y/N]?";
-  bool vs_ai = UserInputBoolean(true);
+#endif
 
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -166,7 +159,7 @@ GLPong::GLPong() {
   }
 
   // Initialize our window.
-  InitGL(vs_ai);
+  InitGL();
 
   // resize the initial window
   SDL_SetWindowSize(sdl_window_, kWidth, kHeight);
@@ -191,13 +184,12 @@ void GLPong::ProcessEvents() {
 
       case SDL_KEYDOWN:
         switch (sdl_event.key.keysym.sym) {
-          case SDLK_ESCAPE:
 #ifndef __EMSCRIPTEN__
+          case SDLK_ESCAPE:
             SDL_Quit();
             game_is_still_running_ = false;
             return;
 #endif
-            break;
           case SDLK_F1: {
             Uint32 flags = SDL_GetWindowFlags(sdl_window_);
             if (flags & SDL_WINDOW_FULLSCREEN)
@@ -309,16 +301,16 @@ void GLPong::DrawGLScene() {
 }
 
 // All Setup For OpenGL Goes Here
-void GLPong::InitGL(bool vs_ai) {
+void GLPong::InitGL() {
   particle_texture_ = LoadGLTextures(GetResourcePath("particle.png").c_str());
   star_texture_ = LoadGLTextures(GetResourcePath("small_blur_star.png").c_str());
 
-  std::shared_ptr<AiPaddle> ai_paddle = std::make_shared<AiPaddle>(true);
-  std::shared_ptr<Paddle> paddle_left = vs_ai ? ai_paddle : std::make_shared<Paddle>(true);
+  auto paddle_left = std::make_shared<Paddle>(true);
   auto paddle_right = std::make_shared<Paddle>(false);
   board_ = std::make_shared<Board>();
   ball_ = std::make_shared<Ball>(board_, paddle_left, paddle_right, particle_texture_);
-  ai_paddle->TrackBall(ball_);
+  paddle_left->TrackBall(ball_);
+  paddle_right->TrackBall(ball_);
 
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // Black Background
   glClearDepth(1.0f);
