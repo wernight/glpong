@@ -48,7 +48,7 @@ class Board : public IObject {
               const glm::mat4& projection) const override;
 
   // Process event.
-  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
+  bool ProcessEvent(const SDL_Event& event) override;
 
   static const float GetTop() { return 48.0f; }
   static const float GetBottom() { return -48.0f; }

@@ -43,8 +43,7 @@ class SceneManager : public IObject {
                       const glm::mat4& projection) const override;
 
   // Asks objects to process an event.
-  virtual bool ProcessEvent(IObject::EEvent nEvent, unsigned long wParam,
-                            unsigned long lParam) override;
+  virtual bool ProcessEvent(const SDL_Event& event) override;
 
   // Implementation
  private:

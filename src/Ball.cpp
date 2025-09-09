@@ -170,7 +170,7 @@ void Ball::Render(const glm::mat4& model, const glm::mat4& view,
   particle_shader_.Render(model, view, projection, shader_particles);
 }
 
-bool Ball::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) { return false; }
+bool Ball::ProcessEvent(const SDL_Event& event) { return false; }
 
 void Ball::NewBall(bool go_to_left) {
   // Selects a random angle.

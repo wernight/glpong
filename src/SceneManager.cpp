@@ -34,9 +34,8 @@ void SceneManager::Render(const glm::mat4& model, const glm::mat4& view,
   for (const auto& object : objects_) object->Render(model, view, projection);
 }
 
-bool SceneManager::ProcessEvent(IObject::EEvent nEvent, unsigned long wParam,
-                                unsigned long lParam) {
+bool SceneManager::ProcessEvent(const SDL_Event& event) {
   for (auto& object : objects_)
-    if (object->ProcessEvent(nEvent, wParam, lParam)) return true;
+    if (object->ProcessEvent(event)) return true;
   return false;
 }

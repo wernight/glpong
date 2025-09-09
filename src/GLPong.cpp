@@ -208,19 +208,11 @@ void GLPong::ProcessEvents() {
           case SDLK_PAUSE:
             is_active_ = !is_active_;
             break;
-          default:
-            scene_.ProcessEvent(IObject::eventKeyDown, sdl_event.key.keysym.sym, 0);
         }
         break;
-
-      case SDL_KEYUP:
-        scene_.ProcessEvent(IObject::eventKeyUp, 0, sdl_event.key.keysym.sym);
-        break;
-
-      case SDL_QUIT:
-        game_is_still_running_ = false;
-        break;
     }
+
+    scene_.ProcessEvent(sdl_event);
   }
 }
 

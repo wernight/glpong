@@ -212,62 +212,93 @@ void Paddle::Render(const glm::mat4& view, const glm::mat4& model,
   glBindVertexArray(0);
 }
 
-bool Paddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {
-  switch (nEvent) {
-    case eventKeyDown:
-      switch (wParam) {
-        case SDLK_LSHIFT:
-          if (left_paddle_) {
-            MoveUp();
-            return true;
-          }
-          break;
-        case SDLK_LCTRL:
-          if (left_paddle_) {
-            MoveDown();
-            return true;
-          }
-          break;
-        case SDLK_UP:
-          if (!left_paddle_) {
-            MoveUp();
-            return true;
-          }
-          break;
-        case SDLK_DOWN:
-          if (!left_paddle_) {
-            MoveDown();
-            return true;
-          }
-          break;
-      }
-      break;
+bool Paddle::ProcessEvent(const SDL_Event& event) {
+  if (left_paddle_) {
+    // Left paddle is controlled by A/Q or Ctrl/Shift keys.
+    switch (event.type) {
+      case SDL_KEYDOWN:
+        if (event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_LSHIFT) {
+          MoveUp();
+          return true;
+        } else if (event.key.keysym.sym == SDLK_q || event.key.keysym.sym == SDLK_LCTRL) {
+          MoveDown();
+          return true;
+        }
+        break;
+      case SDL_KEYUP:
+        if (event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_q ||
+            event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_LCTRL) {
+          Stop();
+          return true;
+        }
+        break;
 
-    case eventKeyUp:
-      switch (lParam) {
-        case SDLK_LSHIFT:
-        case SDLK_LCTRL:
-          if (left_paddle_) {
-            Stop();
-            return true;
+      case SDL_FINGERMOTION:
+      case SDL_FINGERDOWN: {
+        SDL_Window* window = SDL_GetWindowFromID(event.tfinger.windowID);
+        if (event.tfinger.x < 0.5f) {
+          // Left half of the screen
+          if (event.tfinger.y < 0.5f) {
+            // Top half -> move up
+            MoveUp();
+          } else {
+            // Bottom half -> move down
+            MoveDown();
           }
-          break;
-        case SDLK_UP:
-        case SDLK_DOWN:
-          if (!left_paddle_) {
-            Stop();
-            return true;
-          }
-          break;
+        }
+        break;
       }
-      break;
+      case SDL_FINGERUP: {
+        SDL_Window* window = SDL_GetWindowFromID(event.tfinger.windowID);
+        if (event.tfinger.x < 0.5f) {
+          // Left half of the screen
+          Stop();
+        }
+        break;
+      }
+    }
+  } else {
+    // Right paddle is controlled by up and down arrow keys.
+    switch (event.type) {
+      case SDL_KEYDOWN:
+        if (event.key.keysym.sym == SDLK_UP) {
+          MoveUp();
+          return true;
+        } else if (event.key.keysym.sym == SDLK_DOWN) {
+          MoveDown();
+          return true;
+        }
+        break;
+      case SDL_KEYUP:
+        if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_DOWN) {
+          Stop();
+          return true;
+        }
+        break;
 
-    case eventMouseMove:
-    case eventMouseClick:
-    case eventChar:
-      break;
+      case SDL_FINGERMOTION:
+      case SDL_FINGERDOWN: {
+        if (event.tfinger.x > 0.5f) {
+          // Right half of the screen
+          if (event.tfinger.y < 0.5f) {
+            // Top half -> move up
+            MoveUp();
+          } else {
+            // Bottom half -> move down
+            MoveDown();
+          }
+        }
+        break;
+      }
+      case SDL_FINGERUP: {
+        if (event.tfinger.x > 0.5f) {
+          // Right half of the screen
+          Stop();
+        }
+        break;
+      }
+    }
   }
-
   return false;
 }
 

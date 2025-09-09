@@ -66,7 +66,7 @@ void AiPaddle::Update(float dt) {
   Paddle::Update(dt);
 }
 
-bool AiPaddle::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {
-  // Don't process events, so the player can NOT control the paddle.
+bool AiPaddle::ProcessEvent(const SDL_Event& event) {
+  // AI paddle doesn't process user input.
   return false;
 }

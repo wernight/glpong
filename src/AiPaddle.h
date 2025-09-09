@@ -39,7 +39,7 @@ class AiPaddle : public Paddle {
   void Update(float dt) override;
 
   // Process event.
-  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
+  bool ProcessEvent(const SDL_Event& event) override;
 
   // Implementation
  private:

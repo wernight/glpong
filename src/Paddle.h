@@ -46,7 +46,7 @@ class Paddle : public IObject {
               const glm::mat4& projection) const override;
 
   // Process event.
-  bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) override;
+  bool ProcessEvent(const SDL_Event& event) override;
 
   // Attributes
   static const float GetWidth() { return 6.0f; }

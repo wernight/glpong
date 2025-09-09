@@ -320,8 +320,9 @@ void Firework::Render(const glm::mat4& view_ignored, const glm::mat4& model_igno
   particle_shader_.Render(model, view, projection, particles);
 }
 
-bool Firework::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {
-  if (nEvent == eventKeyDown) {
+bool Firework::ProcessEvent(const SDL_Event& event) {
+  // Any key press or touch event will skip the firework animation.
+  if (event.type == SDL_KEYDOWN || event.type == SDL_FINGERDOWN || event.type == SDL_MOUSEBUTTONDOWN) {
     is_done_ = true;
     return true;
   }

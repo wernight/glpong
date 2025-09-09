@@ -21,17 +21,12 @@
 
 #pragma once
 
+#include <SDL2/SDL_events.h>
 #include <glm/glm.hpp>
 
 class IObject {
  public:
-  enum EEvent {
-    eventMouseMove,   // xPos = LOWORD(lParam); yPos = HIWORD(lParam);
-    eventMouseClick,  // xPos = LOWORD(lParam); yPos = HIWORD(lParam);
-    eventChar,        // nVirtKey = (int) wParam; lKeyData = wParam;
-    eventKeyDown,     // nVirtKey = (int) wParam; lKeyData = wParam;
-    eventKeyUp        // nVirtKey = (int) wParam; lKeyData = wParam;
-  };
+
 
   // Constructors
   virtual ~IObject() {};
@@ -52,10 +47,8 @@ class IObject {
    * If he has processed this event and it should not be processed by
    * any other object, then it return true.
    *
-   * @param nEvent  Type of event (mouse click, keyboard, ...).
-   * @param wParam  A value depending of the event type.
-   * @param lParam  A value depending of the event type.
+   * @param event  The SDL event to process.
    * @return True if the message has been processed.
    */
-  virtual bool ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) = 0;
+  virtual bool ProcessEvent(const SDL_Event& event) = 0;
 };

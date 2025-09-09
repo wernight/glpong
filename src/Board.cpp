@@ -487,7 +487,8 @@ void Board::Render(const glm::mat4& view, const glm::mat4& model,
   glEnable(GL_DEPTH_TEST);
 }
 
-bool Board::ProcessEvent(EEvent nEvent, unsigned long wParam, unsigned long lParam) {
+bool Board::ProcessEvent(const SDL_Event& event) {
+  // The board doesn't process user input.
   return false;
 }
 
